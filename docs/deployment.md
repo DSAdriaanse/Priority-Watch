@@ -10,7 +10,50 @@ Layout on the server:
 | `/var/lib/priority-watch/pb_data` | the database and uploads (back this up) |
 | `/etc/priority-watch/env` | secrets, mode 600 (see `.env.example`) |
 
-## First install
+## Scripted install on the server (recommended)
+
+Prerequisites: a Debian server you can ssh into as root, and DNS for `priority.apps.swcrs.org` already pointing at it (the certificate needs it). The pull requests must be merged to `main` (or pass `--branch`).
+
+```bash
+scp deploy/bootstrap.sh root@your-server:
+ssh root@your-server
+bash bootstrap.sh --domain priority.apps.swcrs.org --email you@example.org --superuser-email you@example.org
+```
+
+The script installs Node 22, then shows a public key and waits while you add it to the repo (GitHub, Settings, Deploy keys, leave write access unchecked). It then clones the repo, builds it, and sets up PocketBase, systemd, Nginx with TLS, the firewall and hourly backups.
+It prints the PocketBase superuser login and a generated webhook secret once. Save them.
+
+Update later, from the server:
+
+```bash
+priority-watch-update                  # pull, build, back up, restart, health check, roll back if unhealthy
+priority-watch-update --branch main    # switch branch
+```
+
+A tiny server (under 2 GB RAM) may struggle with the front-end build. Add a swap file or build elsewhere and use `deploy/push.sh` (below).
+
+### Alternative: push from your own machine
+
+`deploy/push.sh` builds locally and uploads over ssh, so the server needs no Node or repo access:
+
+```bash
+deploy/push.sh root@your-server --setup --domain priority.apps.swcrs.org --email you@example.org --superuser-email you@example.org
+deploy/push.sh root@your-server            # later updates
+```
+
+Everything is installed under:
+
+| Path | Contents |
+|---|---|
+| `/opt/priority-watch` | `pocketbase` binary, `pb_hooks`, `pb_migrations`, `dist`, `backup.sh` (previous release kept in `.prev`) |
+| `/opt/priority-watch-src` | git clone (server-side install only) |
+| `/var/lib/priority-watch/pb_data` | the database and uploads (back this up) |
+| `/etc/priority-watch/env` | secrets, mode 640 (see `.env.example`); edit, then `systemctl restart priority-watch` |
+
+The setup step is safe to re-run (for example after fixing DNS if certbot failed). It does not touch your env file or data.
+It does not change SSH settings, so disable password and root login yourself once key login works.
+
+## Manual install (what the script does)
 
 ```bash
 sudo apt install nginx certbot python3-certbot-nginx sqlite3 unzip
@@ -26,7 +69,7 @@ sudo rsync -a backend/pb_migrations backend/pb_hooks /opt/priority-watch/
 sudo rsync -a --delete web/dist/ /opt/priority-watch/dist/
 sudo install -m 755 deploy/backup.sh /opt/priority-watch/backup.sh
 
-sudo cp .env.example /etc/priority-watch/env   # then edit it, fill in the secrets
+sudo cp .env.example /etc/priority-watch/env   # then edit it, fill in the secrets (setup also generates INBOUND_WEBHOOK_SECRET)
 sudo chmod 640 /etc/priority-watch/env; sudo chown root:pwatch /etc/priority-watch/env
 
 sudo cp deploy/priority-watch.service /etc/systemd/system/
@@ -88,7 +131,8 @@ Copy `/var/backups/priority-watch` off the machine too (rsync, rclone, restic). 
 
 ## Upgrades
 
-Back up, replace the `pocketbase` binary (`./pocketbase update` or download), copy new `pb_migrations`/`pb_hooks`/`dist`, `systemctl restart priority-watch`. Migrations run on start.
+App: `deploy/push.sh root@your-server`. Rolling back restores the previous code only; migrations that already ran are not undone, so restore a backup if the schema changed.
+PocketBase itself: back up, then re-run `setup` with `PB_VERSION=x.y.z` set in the server environment (or replace the binary by hand), and restart. Read the release notes first; it is pre-1.0.
 
 ## Troubleshooting
 
