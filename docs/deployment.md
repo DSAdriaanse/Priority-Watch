@@ -10,28 +10,47 @@ Layout on the server:
 | `/var/lib/priority-watch/pb_data` | the database and uploads (back this up) |
 | `/etc/priority-watch/env` | secrets, mode 600 (see `.env.example`) |
 
-## Scripted install (recommended)
+## Scripted install on the server (recommended)
 
-Prerequisites: a Debian server you can ssh into as root (or a sudo user), and DNS for
-`priority.apps.swcrs.org` already pointing at it (needed for the certificate). On your own machine: `ssh`, `tar`, Node 22 and npm.
+Prerequisites: a Debian server you can ssh into as root, and DNS for `priority.apps.swcrs.org` already pointing at it (the certificate needs it). The pull requests must be merged to `main` (or pass `--branch`).
 
 ```bash
-# First time: installs packages, firewall, PocketBase, systemd, Nginx + TLS, hourly backups, then releases the app
-deploy/push.sh root@your-server --setup --domain priority.apps.swcrs.org --email you@example.org --superuser-email you@example.org
-
-# Every update after that (builds, uploads, backs up, restarts, health-checks, rolls back if unhealthy)
-deploy/push.sh root@your-server
+scp deploy/bootstrap.sh root@your-server:
+ssh root@your-server
+bash bootstrap.sh --domain priority.apps.swcrs.org --email you@example.org --superuser-email you@example.org
 ```
 
-`setup` prints the PocketBase superuser login and a generated webhook secret once. Everything it creates is under:
+The script installs Node 22, then shows a public key and waits while you add it to the repo (GitHub, Settings, Deploy keys, leave write access unchecked). It then clones the repo, builds it, and sets up PocketBase, systemd, Nginx with TLS, the firewall and hourly backups.
+It prints the PocketBase superuser login and a generated webhook secret once. Save them.
+
+Update later, from the server:
+
+```bash
+priority-watch-update                  # pull, build, back up, restart, health check, roll back if unhealthy
+priority-watch-update --branch main    # switch branch
+```
+
+A tiny server (under 2 GB RAM) may struggle with the front-end build. Add a swap file or build elsewhere and use `deploy/push.sh` (below).
+
+### Alternative: push from your own machine
+
+`deploy/push.sh` builds locally and uploads over ssh, so the server needs no Node or repo access:
+
+```bash
+deploy/push.sh root@your-server --setup --domain priority.apps.swcrs.org --email you@example.org --superuser-email you@example.org
+deploy/push.sh root@your-server            # later updates
+```
+
+Everything is installed under:
 
 | Path | Contents |
 |---|---|
 | `/opt/priority-watch` | `pocketbase` binary, `pb_hooks`, `pb_migrations`, `dist`, `backup.sh` (previous release kept in `.prev`) |
+| `/opt/priority-watch-src` | git clone (server-side install only) |
 | `/var/lib/priority-watch/pb_data` | the database and uploads (back this up) |
 | `/etc/priority-watch/env` | secrets, mode 640 (see `.env.example`); edit, then `systemctl restart priority-watch` |
 
-`setup` is safe to re-run (for example after fixing DNS if certbot failed, or to pick up changes to the systemd or Nginx files). It does not touch your env file or data.
+The setup step is safe to re-run (for example after fixing DNS if certbot failed). It does not touch your env file or data.
 It does not change SSH settings, so disable password and root login yourself once key login works.
 
 ## Manual install (what the script does)
