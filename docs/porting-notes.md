@@ -37,3 +37,11 @@ Email verification and password reset (PocketBase auth + SMTP), Google sign-in (
 - Heliograph 700 and Pinal 675 still have placeholder `repeater.example.com` link webhooks.
 - The notification template still contains test text.
 - User passwords cannot be migrated; operators will need invites or reset links.
+
+## Differences you will notice
+
+- Signup is closed. Admins add people on the Volunteers page; they get a password-setup email.
+- Secrets are no longer editable in the Settings page. It shows whether each is set on the server.
+- Repeater control only marks a repeater linked/delinked if the webhook call succeeded.
+- The user list (name, callsign, role) is visible to every signed-in member; email and phone only to admins.
+- SMS to volunteers is still sent one at a time, as before.

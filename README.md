@@ -32,4 +32,9 @@ legacy/     Read-only copy of the original Base44 code, kept as the porting refe
 
 ## Status
 
-Scaffold only. Next: data model and migrations, then the API layer, backend hooks, and features one at a time. See `docs/porting-notes.md` for what has to change from the Base44 version.
+Feature-complete port of the Base44 app: schema and rules, API hooks (19 end-to-end tests in `backend/test`), the React front end, a browser smoke test (`web/e2e/smoke.mjs`), a Base44 CSV importer, and Debian deploy files.
+
+- Install and run: `docs/deployment.md`
+- Custom endpoints: `docs/endpoints.md`
+- What changed from Base44 and why: `docs/porting-notes.md`
+- Local development: PocketBase on `:8090` with `--migrationsDir backend/pb_migrations --hooksDir backend/pb_hooks`, then `cd web && npm install && npm run dev` (Vite proxies `/api` to it)
