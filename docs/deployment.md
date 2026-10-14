@@ -10,7 +10,31 @@ Layout on the server:
 | `/var/lib/priority-watch/pb_data` | the database and uploads (back this up) |
 | `/etc/priority-watch/env` | secrets, mode 600 (see `.env.example`) |
 
-## First install
+## Scripted install (recommended)
+
+Prerequisites: a Debian server you can ssh into as root (or a sudo user), and DNS for
+`priority.apps.swcrs.org` already pointing at it (needed for the certificate). On your own machine: `ssh`, `tar`, Node 22 and npm.
+
+```bash
+# First time: installs packages, firewall, PocketBase, systemd, Nginx + TLS, hourly backups, then releases the app
+deploy/push.sh root@your-server --setup --domain priority.apps.swcrs.org --email you@example.org --superuser-email you@example.org
+
+# Every update after that (builds, uploads, backs up, restarts, health-checks, rolls back if unhealthy)
+deploy/push.sh root@your-server
+```
+
+`setup` prints the PocketBase superuser login and a generated webhook secret once. Everything it creates is under:
+
+| Path | Contents |
+|---|---|
+| `/opt/priority-watch` | `pocketbase` binary, `pb_hooks`, `pb_migrations`, `dist`, `backup.sh` (previous release kept in `.prev`) |
+| `/var/lib/priority-watch/pb_data` | the database and uploads (back this up) |
+| `/etc/priority-watch/env` | secrets, mode 640 (see `.env.example`); edit, then `systemctl restart priority-watch` |
+
+`setup` is safe to re-run (for example after fixing DNS if certbot failed, or to pick up changes to the systemd or Nginx files). It does not touch your env file or data.
+It does not change SSH settings, so disable password and root login yourself once key login works.
+
+## Manual install (what the script does)
 
 ```bash
 sudo apt install nginx certbot python3-certbot-nginx sqlite3 unzip
@@ -26,7 +50,7 @@ sudo rsync -a backend/pb_migrations backend/pb_hooks /opt/priority-watch/
 sudo rsync -a --delete web/dist/ /opt/priority-watch/dist/
 sudo install -m 755 deploy/backup.sh /opt/priority-watch/backup.sh
 
-sudo cp .env.example /etc/priority-watch/env   # then edit it, fill in the secrets
+sudo cp .env.example /etc/priority-watch/env   # then edit it, fill in the secrets (setup also generates INBOUND_WEBHOOK_SECRET)
 sudo chmod 640 /etc/priority-watch/env; sudo chown root:pwatch /etc/priority-watch/env
 
 sudo cp deploy/priority-watch.service /etc/systemd/system/
@@ -88,7 +112,8 @@ Copy `/var/backups/priority-watch` off the machine too (rsync, rclone, restic). 
 
 ## Upgrades
 
-Back up, replace the `pocketbase` binary (`./pocketbase update` or download), copy new `pb_migrations`/`pb_hooks`/`dist`, `systemctl restart priority-watch`. Migrations run on start.
+App: `deploy/push.sh root@your-server`. Rolling back restores the previous code only; migrations that already ran are not undone, so restore a backup if the schema changed.
+PocketBase itself: back up, then re-run `setup` with `PB_VERSION=x.y.z` set in the server environment (or replace the binary by hand), and restart. Read the release notes first; it is pre-1.0.
 
 ## Troubleshooting
 
