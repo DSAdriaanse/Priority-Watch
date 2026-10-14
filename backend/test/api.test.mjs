@@ -154,7 +154,9 @@ test("webhook rejects missing, wrong, and query-string secrets", async () => {
   assert.equal((await api("/api/pw/webhook/inbound", { method: "POST", body })).status, 401);
   assert.equal((await api("/api/pw/webhook/inbound", { method: "POST", body, headers: { "x-webhook-secret": "wrong" } })).status, 401);
   assert.equal((await api(`/api/pw/webhook/inbound?secret=${SECRET}`, { method: "POST", body })).status, 401);
-  assert.notEqual((await api(`/api/pw/webhook/inbound?secret=${SECRET}`)).status, 200, "GET must not create incidents");
+  // A GET must never create an incident (when the SPA is served it may fall back to index.html with 200).
+  const get = await api(`/api/pw/webhook/inbound?secret=${SECRET}`);
+  assert.equal(get.json?.incident_id, undefined, "GET must not create incidents");
 });
 
 test("webhook creates an incident, logs it, and notifies the team", async () => {

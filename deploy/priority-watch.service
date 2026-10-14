@@ -1,0 +1,28 @@
+[Unit]
+Description=GMRS Priority Watch (PocketBase)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=pwatch
+Group=pwatch
+WorkingDirectory=/opt/priority-watch
+EnvironmentFile=/etc/priority-watch/env
+ExecStart=/opt/priority-watch/pocketbase serve \
+  --http 127.0.0.1:8090 \
+  --dir /var/lib/priority-watch/pb_data \
+  --migrationsDir /opt/priority-watch/pb_migrations \
+  --hooksDir /opt/priority-watch/pb_hooks \
+  --publicDir /opt/priority-watch/dist
+Restart=on-failure
+RestartSec=3
+LimitNOFILE=4096
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/priority-watch
+
+[Install]
+WantedBy=multi-user.target
