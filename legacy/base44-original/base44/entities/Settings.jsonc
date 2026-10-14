@@ -1,0 +1,51 @@
+{
+  "name": "Settings",
+  "type": "object",
+  "properties": {
+    "wordpress_url": {
+      "type": "string",
+      "description": "WordPress site base URL"
+    },
+    "wordpress_username": {
+      "type": "string"
+    },
+    "wordpress_app_password": {
+      "type": "string",
+      "description": "WordPress application password"
+    },
+    "textbelt_key": {
+      "type": "string",
+      "description": "Textbelt API key used to send SMS alerts (use 'textbelt' for a free test)"
+    },
+    "inbound_webhook_secret": {
+      "type": "string",
+      "description": "Shared secret to validate inbound webhooks"
+    },
+    "notification_template": {
+      "type": "string",
+      "description": "SMS template; placeholders: {repeater}, {alert_type}, {nature}"
+    },
+    "slack_channel": {
+      "type": "string",
+      "description": "Slack channel (name like #alerts or channel ID) to receive incident alerts"
+    },
+    "allmon3_base_url": {
+      "type": "string",
+      "description": "Allmon3 base URL, e.g. https://YOUR_NODE_ADDRESS/allmon3"
+    },
+    "allmon3_username": {
+      "type": "string",
+      "description": "Allmon3 login username"
+    },
+    "emergency_hub_node": {
+      "type": "string",
+      "description": "AllStarLink node number of the designated emergency hub"
+    },
+    "incident_closeout_macro": {
+      "type": "string",
+      "description": "DTMF string sent to close out an incident",
+      "pattern": "^[0-9A-D*#]{1,24}$"
+    }
+  },
+  "required": []
+}
