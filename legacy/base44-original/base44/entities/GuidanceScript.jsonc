@@ -1,0 +1,109 @@
+{
+  "name": "GuidanceScript",
+  "type": "object",
+  "properties": {
+    "incident_category": {
+      "type": "string",
+      "description": "CAP-aligned top-level incident category",
+      "enum": [
+        "medical",
+        "fire",
+        "law_enforcement",
+        "weather",
+        "transportation",
+        "utility",
+        "rescue",
+        "hazard",
+        "other"
+      ]
+    },
+    "incident_subtype": {
+      "type": "string",
+      "description": "Specific scenario; leave blank to serve as the category-level default"
+    },
+    "title": {
+      "type": "string"
+    },
+    "priority_level": {
+      "type": "string",
+      "enum": [
+        "critical",
+        "high",
+        "medium",
+        "low"
+      ],
+      "default": "high"
+    },
+    "initial_actions": {
+      "type": "string",
+      "description": "Immediate first actions"
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Ordered response steps"
+    },
+    "questions_to_ask": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Key questions to ask the caller"
+    },
+    "triage_flow": {
+      "type": "array",
+      "description": "Ordered triage questions with answer-driven priority, conditional steps, and skip-logic",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string"
+          },
+          "answers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string"
+                },
+                "priority": {
+                  "type": "string",
+                  "enum": [
+                    "critical",
+                    "high",
+                    "medium",
+                    "low"
+                  ]
+                },
+                "add_steps": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Extra response steps triggered when this answer is chosen"
+                },
+                "skip_rest": {
+                  "type": "boolean",
+                  "description": "If true, skip remaining triage questions after this answer"
+                }
+              },
+              "required": [
+                "label"
+              ]
+            }
+          }
+        },
+        "required": [
+          "question"
+        ]
+      }
+    }
+  },
+  "required": [
+    "incident_category",
+    "title"
+  ]
+}

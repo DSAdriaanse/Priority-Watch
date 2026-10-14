@@ -1,0 +1,42 @@
+{
+  "name": "EmergencyContact",
+  "type": "object",
+  "properties": {
+    "repeater_id": {
+      "type": "string",
+      "description": "Repeater this contact belongs to"
+    },
+    "agency_type": {
+      "type": "string",
+      "enum": [
+        "911",
+        "police",
+        "fire",
+        "emt",
+        "power",
+        "gas",
+        "other"
+      ]
+    },
+    "agency_name": {
+      "type": "string",
+      "description": "Name of the agency"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Primary phone number"
+    },
+    "alternate_phone": {
+      "type": "string",
+      "description": "Secondary phone number"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "repeater_id",
+    "agency_type",
+    "phone"
+  ]
+}
