@@ -2,8 +2,6 @@
 
 Emergency traffic coordination for the SWCRS GMRS repeater network. Repeater systems post alerts to a webhook, operators triage and track incidents in real time, and volunteers are notified by SMS, email and Slack.
 
-This repo is a rebuild of the app that previously ran on Base44, moved to a self-hosted Debian server so every layer is visible and owned.
-
 ## Stack
 
 - **Backend:** PocketBase (single Go binary, SQLite inside) with JS hooks for custom routes
@@ -17,8 +15,8 @@ This repo is a rebuild of the app that previously ran on Base44, moved to a self
 backend/    PocketBase migrations (schema and access rules) and hooks (webhook, notify, resolve, DTMF, link)
 web/        React app. src/api is the only code that talks to the backend
 deploy/     Server install and update scripts (bootstrap.sh, update.sh, server.sh), Nginx and systemd files, backup script
-scripts/    One-time Base44 data import and create-admin
-docs/       Code map, endpoint reference, deployment runbook, porting notes
+scripts/    Create-admin, and the one-time import of the previous app's data
+docs/       Code map, endpoint reference, deployment runbook
 ```
 
 ## Principles
@@ -31,10 +29,9 @@ docs/       Code map, endpoint reference, deployment runbook, porting notes
 
 ## Status
 
-Feature-complete port of the Base44 app: schema and rules, API hooks (19 end-to-end tests in `backend/test`), the React front end, a browser smoke test (`web/e2e/smoke.mjs`), a Base44 CSV importer, and Debian deploy files.
+Schema and rules, API hooks (19 end-to-end tests in `backend/test`), the React front end, browser tests (`web/e2e`), a data importer, and Debian deploy files.
 
 - Reading the code (start here): `docs/code-map.md`
 - Install and run: `docs/deployment.md`
 - Custom endpoints: `docs/endpoints.md`
-- What changed from Base44 and why: `docs/porting-notes.md`
 - Local development: PocketBase on `:8090` with `--migrationsDir backend/pb_migrations --hooksDir backend/pb_hooks`, then `cd web && npm install && npm run dev` (Vite proxies `/api` to it)

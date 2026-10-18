@@ -179,7 +179,7 @@ test("webhook creates an incident, logs it, and notifies the team", async () => 
   assert.ok(calls.some((c) => c.path === "/slack" && c.body.channel === "#pw-test"), "Slack alert");
 });
 
-test("webhook accepts the secret in the body and the old Base44 path", async () => {
+test("webhook accepts the secret in the body and the legacy path", async () => {
   const r = await api("/api/functions/handleInboundWebhook", { method: "POST", body: { secret: SECRET, repeater_name: "Not A Real Repeater", alert_type: "Auto Reported" } });
   assert.equal(r.status, 200, JSON.stringify(r.json));
   assert.equal(r.json.repeater, "Not A Real Repeater");
