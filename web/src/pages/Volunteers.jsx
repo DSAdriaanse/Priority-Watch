@@ -15,7 +15,7 @@ const emptyVolunteer = { name: "", callsign: "", phone: "", email: "", role: "op
 // VOLUNTEERS (/volunteers, admin only): the team. Each person is a login account
 // (role, active or not) plus private contact details (phone, whether they get SMS
 // and email alerts). New people are emailed a link to set their own password (once email is set up).
-// All the work happens in src/api/volunteers.js.
+// All the work happens in src/api/team.js.
 export default function Volunteers() {
   const { toast } = useToast();
   const { user } = useAuth();

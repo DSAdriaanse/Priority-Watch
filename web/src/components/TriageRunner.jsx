@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { entities, auth } from "@/api";
+import { addIncidentLogEntry, auth, updateIncident } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, RotateCcw } from "lucide-react";
 import StatusBadge from "@/components/StatusBadge";
@@ -51,8 +51,8 @@ export default function TriageRunner({ guidance, incident, onApplied }) {
       const summary = record
         .map((r) => `Q: ${r.question}\nA: ${r.answer}${r.priority ? ` (${r.priority})` : ""}`)
         .join("\n\n");
-      await entities.Incident.update(incident.id, { priority_level: derivedPriority });
-      await entities.IncidentUpdate.create({
+      await updateIncident(incident.id, { priority_level: derivedPriority });
+      await addIncidentLogEntry({
         incident_id: incident.id,
         operator_name: me?.full_name || "Operator",
         message: `Triage completed → priority ${derivedPriority}.\n${summary}`,

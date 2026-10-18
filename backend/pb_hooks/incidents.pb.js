@@ -7,7 +7,7 @@
 //
 // Anything that talks to the outside world (SMS, Slack, Anthropic, WordPress)
 // lives here on the server so API keys never reach the browser. The browser
-// calls these routes through web/src/api/functions.js.
+// calls these routes through web/src/api/incidents.js.
 
 // ---- Notify the team --------------------------------------------------------
 // Sends one message to Slack plus every active volunteer by SMS and/or email, and

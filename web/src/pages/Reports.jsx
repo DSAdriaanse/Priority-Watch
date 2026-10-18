@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { entities } from "@/api";
+import { deleteIncident, listRepeaters, listResolvedIncidents } from "@/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -35,7 +35,7 @@ export default function Reports() {
     if (!confirm("Delete this report permanently? This cannot be undone.")) return;
     setDeletingId(incId);
     try {
-      await entities.Incident.delete(incId);
+      await deleteIncident(incId);
       setIncidents((prev) => prev.filter((i) => i.id !== incId));
       toast({ title: "Report deleted" });
     } catch (err) {
@@ -49,8 +49,8 @@ export default function Reports() {
     setLoading(true);
     try {
       const [incs, reps] = await Promise.all([
-        entities.Incident.list("-resolved_date", 200),
-        entities.Repeater.list(),
+        listResolvedIncidents(),
+        listRepeaters(),
       ]);
       setIncidents(incs);
       setRepeaters(reps);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { entities } from "@/api";
+import { listRepeaters } from "@/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioTower } from "lucide-react";
 import RepeaterControls from "@/components/RepeaterControls";
@@ -12,7 +12,7 @@ export default function DtmfControl() {
 
   useEffect(() => {
     (async () => {
-      const list = await entities.Repeater.list();
+      const list = await listRepeaters();
       setRepeaters(list || []);
       setLoading(false);
     })();

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { entities } from "@/api";
+import { listDtmfLog } from "@/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollText } from "lucide-react";
 
@@ -11,7 +11,7 @@ export default function DtmfLog() {
 
   useEffect(() => {
     (async () => {
-      const list = await entities.DtmfLog.list("-created_date", 200);
+      const list = await listDtmfLog();
       setLogs(list || []);
       setLoading(false);
     })();

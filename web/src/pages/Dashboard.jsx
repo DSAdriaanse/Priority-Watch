@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { entities } from "@/api";
+import { createIncident, listRecentIncidents, listRepeaters, team, watchIncidents, watchRepeaters } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,7 +18,7 @@ const priorityLevels = ["critical", "high", "medium", "low"];
 
 // HOME SCREEN (/): active incidents, headline numbers, recent resolved incidents,
 // and the "Log Incident" form for reporting one by hand.
-// Everyone signed in can see it. It updates itself: entities.*.subscribe() pushes
+// Everyone signed in can see it. It updates itself: the watch functions (watchIncidents and so on) push
 // changes (including incidents created by the inbound webhook) without a reload.
 export default function Dashboard() {
   const [incidents, setIncidents] = useState([]);
@@ -33,9 +33,9 @@ export default function Dashboard() {
     setLoading(true);
     try {
       const [incs, reps, vols] = await Promise.all([
-      entities.Incident.list("-created_date", 50),
-      entities.Repeater.list(),
-      entities.Volunteer.filter({ active: true })]
+      listRecentIncidents(),
+      listRepeaters(),
+      team.listActiveVolunteers()]
       );
       setIncidents(incs);
       setRepeaters(reps);
@@ -50,14 +50,14 @@ export default function Dashboard() {
   // Real-time: refresh when any operator (or the webhook) changes data.
   // Each subscribe() returns a function that stops listening; React calls it on leaving the page.
   useEffect(() => {
-    const unsubIncidents = entities.Incident.subscribe(() => {
-      entities.Incident.list("-created_date", 50).then(setIncidents);
+    const unsubIncidents = watchIncidents(() => {
+      listRecentIncidents().then(setIncidents);
     });
-    const unsubRepeaters = entities.Repeater.subscribe(() => {
-      entities.Repeater.list().then(setRepeaters);
+    const unsubRepeaters = watchRepeaters(() => {
+      listRepeaters().then(setRepeaters);
     });
-    const unsubVolunteers = entities.Volunteer.subscribe(() => {
-      entities.Volunteer.filter({ active: true }).then(setVolunteers);
+    const unsubVolunteers = team.watchVolunteers(() => {
+      team.listActiveVolunteers().then(setVolunteers);
     });
     return () => {unsubIncidents();unsubRepeaters();unsubVolunteers();};
   }, []);
@@ -73,7 +73,7 @@ export default function Dashboard() {
     try {
       const selected = repeaters.filter((r) => form.repeater_ids.includes(r.id));
       const { repeater_ids, ...rest } = form;
-      await entities.Incident.create({
+      await createIncident({
         ...rest,
         repeater_id: selected.map((r) => r.id),
         repeater_name: selected.map((r) => r.name),

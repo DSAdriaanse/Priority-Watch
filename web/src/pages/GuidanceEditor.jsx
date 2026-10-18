@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { entities } from "@/api";
+import { createGuidance, deleteGuidance, getGuidance, updateGuidance } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,7 +62,7 @@ export default function GuidanceEditor() {
     let cancelled = false;
     (async () => {
       try {
-        const g = await entities.GuidanceScript.get(id);
+        const g = await getGuidance(id);
         if (cancelled) return;
         const d = normalize(g);
         setDraft(d);
@@ -86,12 +86,12 @@ export default function GuidanceEditor() {
     setSaving(true);
     try {
       if (isNew) {
-        const created = await entities.GuidanceScript.create(payload);
+        const created = await createGuidance(payload);
         setBaseline(JSON.stringify(payload));
         toast({ title: "Guidance created" });
         navigate(`/guidance/${created.id}`, { replace: true });
       } else {
-        const updated = await entities.GuidanceScript.update(id, payload);
+        const updated = await updateGuidance(id, payload);
         const d = normalize(updated);
         setDraft(d);
         setBaseline(JSON.stringify(toPayload(d)));
@@ -127,7 +127,7 @@ export default function GuidanceEditor() {
   const remove = async () => {
     if (!confirm(`Delete guidance "${draft.title || "Untitled"}"? This cannot be undone.`)) return;
     try {
-      await entities.GuidanceScript.delete(id);
+      await deleteGuidance(id);
       setBaseline(JSON.stringify(payload)); // nothing left to lose
       navigate("/guidance", { replace: true });
     } catch (e) {

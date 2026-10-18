@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { entities, configStatus } from "@/api";
+import { configStatus, createSettings, getSettings, updateSettings } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,8 +43,8 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
-    const list = await entities.Settings.list();
-    setSettings(list[0] ? { ...emptySettings, ...list[0] } : { ...emptySettings });
+    const saved = await getSettings();
+    setSettings(saved ? { ...emptySettings, ...saved } : { ...emptySettings });
     configStatus().then(setStatus).catch(() => setStatus({}));
   };
   useEffect(() => { load(); }, []);
@@ -52,8 +52,8 @@ export default function Settings() {
   const save = async () => {
     setSaving(true);
     try {
-      if (settings.id) await entities.Settings.update(settings.id, settings);
-      else await entities.Settings.create(settings);
+      if (settings.id) await updateSettings(settings.id, settings);
+      else await createSettings(settings);
       toast({ title: "Settings saved" });
       load();
     } catch (e) {

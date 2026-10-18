@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { entities, functions, auth } from "@/api";
+import { addIncidentLogEntry, auth, deleteIncident, getIncident, getRepeater, listContactsFor, listGuidance, listIncidentLog, notifyVolunteers, resolveIncident, team, updateIncident } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -55,16 +55,16 @@ export default function IncidentDetail() {
   const load = async () => {
     setError(null);
     try {
-      const inc = await entities.Incident.get(id);
+      const inc = await getIncident(id);
       setIncident(inc);
       setAiSummary(inc.ai_summary || null);
       const repeaterIds = Array.isArray(inc.repeater_id) ? inc.repeater_id.filter(Boolean) : (inc.repeater_id ? [inc.repeater_id] : []);
       const [ups, reps, conts, guides, vols] = await Promise.all([
-        entities.IncidentUpdate.filter({ incident_id: id }, "-created_date", 200),
-        Promise.all(repeaterIds.map((rid) => entities.Repeater.get(rid).catch(() => null))).then((arr) => arr.filter(Boolean)),
-        Promise.all(repeaterIds.map((rid) => entities.EmergencyContact.filter({ repeater_id: rid }))).then((arrs) => arrs.flat()),
-        entities.GuidanceScript.list(),
-        entities.Volunteer.filter({ active: true }),
+        listIncidentLog(id),
+        Promise.all(repeaterIds.map((rid) => getRepeater(rid).catch(() => null))).then((arr) => arr.filter(Boolean)),
+        Promise.all(repeaterIds.map((rid) => listContactsFor(rid))).then((arrs) => arrs.flat()),
+        listGuidance(),
+        team.listActiveVolunteers(),
       ]);
       setUpdates(ups);
       setRepeaters(reps);
@@ -89,7 +89,7 @@ export default function IncidentDetail() {
 
   // Save one edited field straight away, then update the screen without a reload.
   const saveField = async (field, value) => {
-    await entities.Incident.update(id, { [field]: value });
+    await updateIncident(id, { [field]: value });
     setIncident({ ...incident, [field]: value });
   };
 
@@ -106,14 +106,14 @@ export default function IncidentDetail() {
     setBusy(true);
     try {
       const me = await auth.me().catch(() => null);
-      await entities.IncidentUpdate.create({
+      await addIncidentLogEntry({
         incident_id: id,
         operator_name: me?.full_name || "Operator",
         message: newUpdate.trim(),
         action_type: "note",
       });
       setNewUpdate("");
-      setUpdates(await entities.IncidentUpdate.filter({ incident_id: id }, "-created_date", 200));
+      setUpdates(await listIncidentLog(id));
     } finally {
       setBusy(false);
     }
@@ -125,14 +125,14 @@ export default function IncidentDetail() {
     setBusy(true);
     setNotificationResults(null);
     try {
-      const res = await functions.invoke("notifyVolunteers", {
+      const res = await notifyVolunteers({
         incident_id: id,
         repeater_name: Array.isArray(incident.repeater_name) ? incident.repeater_name.join(", ") : incident.repeater_name,
         alert_type: incident.alert_type,
         nature: incident.nature,
       });
-      setNotificationResults(res.data.results || []);
-      toast({ title: res.data.failed ? "Notification failures" : "Notifications accepted", description: `${res.data.notified || 0} accepted, ${res.data.failed || 0} failed. See notification results below.`, variant: res.data.failed ? "destructive" : "default" });
+      setNotificationResults(res.results || []);
+      toast({ title: res.failed ? "Notification failures" : "Notifications accepted", description: `${res.notified || 0} accepted, ${res.failed || 0} failed. See notification results below.`, variant: res.failed ? "destructive" : "default" });
       load();
     } catch (e) {
       toast({ title: "Notification failed", description: e.message, variant: "destructive" });
@@ -148,8 +148,8 @@ export default function IncidentDetail() {
     try {
       const me = await auth.me().catch(() => null);
       const prev = incident.assigned_operator;
-      await entities.Incident.update(id, { assigned_operator: name });
-      await entities.IncidentUpdate.create({
+      await updateIncident(id, { assigned_operator: name });
+      await addIncidentLogEntry({
         incident_id: id,
         operator_name: me?.full_name || "Operator",
         message: prev ? `Response ownership handed off from ${prev} to ${name}.` : `Response ownership assigned to ${name}.`,
@@ -177,9 +177,9 @@ export default function IncidentDetail() {
     if (!confirm("Are you sure? This will close out the incident and prevent further changes.")) return;
     setResolving(true);
     try {
-      const res = await functions.invoke("resolveIncident", { incident_id: id });
-      setAiSummary(res.data?.ai_summary || "Summary generated.");
-      toast({ title: "Incident resolved", description: res.data?.wordpress_post_url ? "Posted to WordPress." : "AI summary generated." });
+      const res = await resolveIncident({ incident_id: id });
+      setAiSummary(res?.ai_summary || "Summary generated.");
+      toast({ title: "Incident resolved", description: res?.wordpress_post_url ? "Posted to WordPress." : "AI summary generated." });
       load();
     } catch (e) {
       toast({ title: "Resolution failed", description: e.message, variant: "destructive" });
@@ -193,7 +193,7 @@ export default function IncidentDetail() {
     if (!confirm("Are you sure? This will close out the incident and prevent further changes.")) return;
     setFalseAlarm(true);
     try {
-      await functions.invoke("resolveIncident", { incident_id: id, false_alarm: true });
+      await resolveIncident({ incident_id: id, false_alarm: true });
       toast({ title: "Closed as false alarm", description: "Logged. Not posted to WordPress." });
       load();
     } catch (e) {
@@ -204,11 +204,11 @@ export default function IncidentDetail() {
   };
 
   // Permanent delete. The server only allows admins.
-  const deleteIncident = async () => {
+  const removeIncident = async () => {
     if (!confirm("Delete this report permanently? This cannot be undone.")) return;
     setDeleting(true);
     try {
-      await entities.Incident.delete(id);
+      await deleteIncident(id);
       toast({ title: "Report deleted" });
       navigate("/");
     } catch (e) {
@@ -274,7 +274,7 @@ export default function IncidentDetail() {
               </Button>
             </div>
           ) : isAdmin ? (
-            <Button onClick={deleteIncident} disabled={deleting} variant="destructive" className="md:shrink-0">
+            <Button onClick={removeIncident} disabled={deleting} variant="destructive" className="md:shrink-0">
               <Trash2 className="w-4 h-4 mr-2" /> Delete Report
             </Button>
           ) : null}

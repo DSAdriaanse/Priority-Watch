@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { entities } from "@/api";
+import { createGuidance, createRepeater, listGuidance, listRepeaters, updateGuidance, updateRepeater } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download, Upload, Loader2, FileSpreadsheet } from "lucide-react";
@@ -25,7 +25,7 @@ export default function DataBackup() {
     setExporting(true);
     try {
       const { default: ExcelJS } = await import("exceljs");
-      const [repeaters, guidance] = await Promise.all([entities.Repeater.list("-created_date"), entities.GuidanceScript.list("-created_date")]);
+      const [repeaters, guidance] = await Promise.all([listRepeaters(), listGuidance()]);
 
       const wb = new ExcelJS.Workbook();
       const addSheet = (name, columns, rows) => {
@@ -87,25 +87,25 @@ export default function DataBackup() {
 
       const repRows = readSheet(wb.getWorksheet("Repeaters"));
       if (repRows) {
-        const existing = await entities.Repeater.list("-created_date");
+        const existing = await listRepeaters();
         for (const row of repRows) {
           const fields = parseRepeaterRow(row);
           if (!fields.name) { summary.repeaters.skipped++; continue; }
           const match = existing.find((r) => (r.name || "").toLowerCase() === fields.name.toLowerCase());
-          if (match) { await entities.Repeater.update(match.id, fields); summary.repeaters.updated++; }
-          else { await entities.Repeater.create(fields); summary.repeaters.created++; }
+          if (match) { await updateRepeater(match.id, fields); summary.repeaters.updated++; }
+          else { await createRepeater(fields); summary.repeaters.created++; }
         }
       }
 
       const guideRows = readSheet(wb.getWorksheet("Guidance"));
       if (guideRows) {
-        const existing = await entities.GuidanceScript.list("-created_date");
+        const existing = await listGuidance();
         for (const row of guideRows) {
           const fields = parseGuidanceRow(row);
           if (!fields.title) { summary.guidance.skipped++; continue; }
           const match = existing.find((g) => (g.title || "").toLowerCase() === fields.title.toLowerCase());
-          if (match) { await entities.GuidanceScript.update(match.id, fields); summary.guidance.updated++; }
-          else { await entities.GuidanceScript.create(fields); summary.guidance.created++; }
+          if (match) { await updateGuidance(match.id, fields); summary.guidance.updated++; }
+          else { await createGuidance(fields); summary.guidance.created++; }
         }
       }
 

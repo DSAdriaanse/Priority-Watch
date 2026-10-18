@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { entities } from "@/api";
+import { createGuidance, deleteGuidance, listGuidance } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
@@ -14,13 +14,13 @@ export default function Guidance() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const load = async () => setGuides(await entities.GuidanceScript.list());
+  const load = async () => setGuides(await listGuidance());
   useEffect(() => { load(); }, []);
 
   const remove = async (e, g) => {
     e.stopPropagation();
     if (!confirm(`Delete guidance "${g.title}"?`)) return;
-    await entities.GuidanceScript.delete(g.id);
+    await deleteGuidance(g.id);
     load();
   };
 
@@ -28,7 +28,7 @@ export default function Guidance() {
     e.stopPropagation();
     try {
       const { id, ...rest } = g;
-      const copy = await entities.GuidanceScript.create({ ...rest, title: `${g.title} (copy)` });
+      const copy = await createGuidance({ ...rest, title: `${g.title} (copy)` });
       navigate(`/guidance/${copy.id}`);
     } catch (err) {
       toast({ title: "Could not duplicate", description: err.message, variant: "destructive" });

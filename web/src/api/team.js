@@ -1,6 +1,7 @@
 // Team management for admins: a login account (users) plus private contact details
 // (volunteer_contacts: phone and which alerts they get).
 import { pb } from "./pb";
+import { table } from "./records";
 
 const users = () => pb.collection("users");
 const contacts = () => pb.collection("volunteer_contacts");
@@ -79,3 +80,9 @@ export async function saveVolunteer(v) {
 
 export const deleteVolunteer = (id) => users().delete(id);
 export const sendPasswordReset = (email) => users().requestPasswordReset(email);
+
+// The active team, for assignment menus and the dashboard. Names, callsigns and
+// roles only; phone numbers stay private to admins.
+const directory = table("users");
+export const listActiveVolunteers = () => directory.list({ where: { active: true } });
+export const watchVolunteers = directory.watch;

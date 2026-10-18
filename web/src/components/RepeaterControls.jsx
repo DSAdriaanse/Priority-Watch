@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { entities, functions } from "@/api";
+import { listEnabledDtmfCommands, runDtmf } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -34,7 +34,7 @@ export default function RepeaterControls({ repeaters }) {
   );
 
   const loadCommands = async () => {
-    const list = await entities.DtmfCommand.filter({ enabled: true }, "order", 100);
+    const list = await listEnabledDtmfCommands();
     setCommands(list || []);
   };
   useEffect(() => { loadCommands(); }, []);
@@ -59,8 +59,8 @@ export default function RepeaterControls({ repeaters }) {
     setSending(true);
     setResult(null);
     try {
-      const res = await functions.invoke("runDtmf", { repeaterId, commandId });
-      const data = res.data || {};
+      const res = await runDtmf({ repeaterId, commandId });
+      const data = res || {};
       if (data.ok) {
         setResult({ ok: true, output: data.output });
         toast({ title: "Command sent", description: data.output });
