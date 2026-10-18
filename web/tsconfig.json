@@ -9,7 +9,9 @@
     "paths": { "@/*": ["./src/*"] },
     "types": ["vite/client"],
     "strict": true,
-    "allowJs": true,
+    "noImplicitAny": false,
+    "useUnknownInCatchVariables": false,
+    "allowJs": false,
     "checkJs": false,
     "noEmit": true,
     "skipLibCheck": true,
@@ -18,5 +20,5 @@
     "isolatedModules": true
   },
   "include": ["src"],
-  "exclude": ["node_modules", "dist", "src/components/ui"]
+  "exclude": ["node_modules", "dist"]
 }

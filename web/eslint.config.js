@@ -3,17 +3,20 @@ import pluginJs from "@eslint/js";
 import pluginReact from "eslint-plugin-react";
 import pluginReactHooks from "eslint-plugin-react-hooks";
 import pluginUnusedImports from "eslint-plugin-unused-imports";
+import tseslint from "typescript-eslint";
 
 export default [
   {
     files: [
-      "src/features/**/*.{js,mjs,cjs,jsx}",
-      "src/components/**/*.{js,mjs,cjs,jsx}",
+      "src/features/**/*.{ts,tsx}",
+      "src/components/**/*.{ts,tsx}",
+      "src/App.tsx",
     ],
-    ignores: ["src/lib/**/*", "src/components/ui/**/*"],
+    ignores: ["src/components/ui/**/*"],
     ...pluginJs.configs.recommended,
     ...pluginReact.configs.flat.recommended,
     languageOptions: {
+      parser: tseslint.parser,
       globals: globals.browser,
       parserOptions: {
         ecmaVersion: 2022,
@@ -35,6 +38,7 @@ export default [
     },
     rules: {
       "no-unused-vars": "off",
+      "no-undef": "off", // tsc checks names, and it knows the React and DOM types
       "react/jsx-uses-vars": "error",
       "react/jsx-uses-react": "error",
       "unused-imports/no-unused-imports": "error",
