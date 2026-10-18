@@ -3,6 +3,9 @@
 #   0 * * * *  DATA=/var/lib/<name>/pb_data OUT=/var/backups/<name> /opt/<name>/backup.sh
 # server.sh writes that cron line for each instance; the defaults below are for the default instance.
 set -euo pipefail
+# Start from / so a working directory the service user cannot read (for example someone's home folder)
+# does not make find fail at the end and mark a good backup as failed.
+cd /
 DATA=${DATA:-/var/lib/priority-watch/pb_data}
 OUT=${OUT:-/var/backups/priority-watch}
 KEEP_DAYS=${KEEP_DAYS:-14}
