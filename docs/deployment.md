@@ -20,6 +20,8 @@ ssh root@your-server
 bash bootstrap.sh --domain priority.apps.swcrs.org --email you@example.org --superuser-email you@example.org
 ```
 
+The script asks which local port the app should listen on and suggests the first free one from 8090 up. Press Enter to accept it, or pass `--port 8091` to skip the question. It refuses a port that is not a number from 1024 to 65535 or that something else is already using. The port is only used between Nginx and the app on the same machine, so it is not opened in the firewall and nothing outside the server can reach it directly.
+
 The script installs Node 22, then shows a public key and waits while you add it to the repo (GitHub, Settings, Deploy keys, leave write access unchecked). It then clones the repo, builds it, and sets up PocketBase, systemd, Nginx with TLS, the firewall and hourly backups.
 It prints the PocketBase superuser login and a generated webhook secret once. Save them.
 
@@ -44,6 +46,18 @@ Everything is installed under:
 The setup step is safe to re-run (for example after fixing DNS if certbot failed). It does not touch your env file or data.
 It does not change SSH settings, so disable password and root login yourself once key login works.
 
+### The port
+
+The chosen port is saved as `PW_PORT` in `/etc/priority-watch/env`. The systemd unit reads it from there, and setup writes it into the Nginx site. To change it later, re-run setup with the new port (it keeps your secrets and data):
+
+```bash
+priority-watch-update --setup --domain priority.apps.swcrs.org --email you@example.org --port 8095
+```
+
+Do not just edit `PW_PORT` by hand; Nginx would still point at the old port. Servers installed before this option existed keep running on 8090, and the next update records that in the env file.
+
+A different port is not enough on its own to run a second copy on the same server. The service name, install folders, data folder, Nginx site, service user and backup job are all shared at the moment, so a second install would overwrite the first. Making those configurable per instance is a separate change.
+
 ## Manual install (what the script does)
 
 ```bash
@@ -63,8 +77,8 @@ sudo install -m 755 deploy/backup.sh /opt/priority-watch/backup.sh
 sudo cp .env.example /etc/priority-watch/env   # then edit it, fill in the secrets (setup also generates INBOUND_WEBHOOK_SECRET)
 sudo chmod 640 /etc/priority-watch/env; sudo chown root:pwatch /etc/priority-watch/env
 
-sudo cp deploy/priority-watch.service /etc/systemd/system/
-sudo cp deploy/nginx.conf /etc/nginx/sites-available/priority-watch
+sudo cp deploy/priority-watch.service /etc/systemd/system/   # reads PW_PORT from the env file (set it, for example PW_PORT=8090)
+sudo sed 's/__DOMAIN__/priority.apps.swcrs.org/; s/__PORT__/8090/' deploy/nginx.conf | sudo tee /etc/nginx/sites-available/priority-watch >/dev/null
 sudo ln -s /etc/nginx/sites-available/priority-watch /etc/nginx/sites-enabled/
 sudo certbot --nginx -d priority.apps.swcrs.org     # gets the certificate (edit server_name first if needed)
 sudo systemctl daemon-reload && sudo systemctl enable --now priority-watch
@@ -127,6 +141,7 @@ PocketBase itself: back up, then re-run `setup` with `PB_VERSION=x.y.z` set in t
 
 ## Troubleshooting
 
+- App will not start after choosing a port: another program may be using it (`ss -ltnp | grep :PORT`). Re-run setup with a free `--port`.
 - Dashboard does not update live: Nginx is buffering `/api/realtime`. Use the supplied config.
 - Alerts arrive but no SMS: check Settings status badges (Textbelt key present?) and `journalctl -u priority-watch`.
 - 429 from the webhook: more than `WEBHOOK_RATE_LIMIT` requests/minute from one IP.

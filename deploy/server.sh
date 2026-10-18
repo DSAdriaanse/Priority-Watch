@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Runs ON THE SERVER. Started by priority-watch-update (deploy/update.sh), which stages the files first.
 #
-#   server.sh setup --domain priority.example.org --email you@example.org [--superuser-email you@example.org]
+#   server.sh setup --domain priority.example.org --email you@example.org [--port 8090] [--superuser-email you@example.org]
 #       One-time (and safe to re-run) server preparation + first release.
+#       --port is the local port the app listens on (default: the current one, else 8090).
+#       The port lives in the env file as PW_PORT; to change it later, re-run setup with --port.
 #   server.sh release
 #       Install the code staged next to this script, restart, health check, roll back on failure.
 #
@@ -16,13 +18,31 @@ DATA=${DATA:-/var/lib/priority-watch}
 ENV_FILE=${ENV_FILE:-/etc/priority-watch/env}
 SVC_USER=pwatch
 PB_VERSION=${PB_VERSION:-0.36.0}
-HEALTH_URL=${HEALTH_URL:-http://127.0.0.1:8090/api/health}
+DEFAULT_PORT=8090
+HEALTH_URL=${HEALTH_URL:-}    # default is built from PW_PORT once the env file is known
 HEALTH_TIMEOUT=${HEALTH_TIMEOUT:-30}
 STAGE=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)   # parent of deploy/
 
 say()  { printf '\n==> %s\n' "$*"; }
 warn() { printf 'WARNING: %s\n' "$*" >&2; }
 die()  { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+
+# Port handling. PW_PORT in the env file is the single source of truth: the systemd unit reads it,
+# and setup writes it into the Nginx config.
+valid_port() { [[ "$1" =~ ^[0-9]+$ ]] && [ "$1" -ge 1024 ] && [ "$1" -le 65535 ]; }
+current_port() { [ -f "$ENV_FILE" ] && sed -n 's/^PW_PORT=//p' "$ENV_FILE" | head -1 || true; }
+set_env_value() {   # name value
+  if grep -q "^$1=" "$ENV_FILE"; then sed -i "s|^$1=.*|$1=$2|" "$ENV_FILE"; else printf '\n%s=%s\n' "$1" "$2" >> "$ENV_FILE"; fi
+}
+# Installs made before the port was configurable run on 8090, so record that.
+ensure_port_setting() {
+  [ -f "$ENV_FILE" ] || return 0
+  [ -n "$(current_port)" ] || set_env_value PW_PORT "$DEFAULT_PORT"
+}
+resolve_health_url() {
+  local port=${PORT:-$(current_port)}
+  [ -n "$HEALTH_URL" ] || HEALTH_URL="http://127.0.0.1:${port:-$DEFAULT_PORT}/api/health"
+}
 
 need_root() { [ "$(id -u)" = 0 ] || exec sudo -E bash "${BASH_SOURCE[0]}" "$@"; }
 
@@ -83,8 +103,8 @@ install_service() {
 }
 
 install_nginx() {
-  say "Configuring Nginx for $DOMAIN"
-  sed "s|__DOMAIN__|$DOMAIN|g" "$STAGE/deploy/nginx.conf" > /etc/nginx/sites-available/priority-watch
+  say "Configuring Nginx for $DOMAIN (app on local port $PORT)"
+  sed -e "s|__DOMAIN__|$DOMAIN|g" -e "s|__PORT__|$PORT|g" "$STAGE/deploy/nginx.conf" > /etc/nginx/sites-available/priority-watch
   ln -sf /etc/nginx/sites-available/priority-watch /etc/nginx/sites-enabled/priority-watch
   rm -f /etc/nginx/sites-enabled/default
   nginx -t
@@ -127,6 +147,8 @@ healthy() {
 
 do_release() {
   say "Releasing"
+  ensure_port_setting
+  resolve_health_url
   [ -x "$APP/pocketbase" ] || die "PocketBase is not installed. Run:  server.sh setup ..."
   for d in dist pb_hooks pb_migrations; do [ -d "$STAGE/$d" ] || die "missing $STAGE/$d in the staged release"; done
 
@@ -165,22 +187,27 @@ create_superuser() {
 }
 
 cmd_setup() {
-  DOMAIN=; EMAIL=; SUPERUSER_EMAIL=; NEW_SECRET=; SUPERUSER_PW=; TLS=no
+  DOMAIN=; EMAIL=; SUPERUSER_EMAIL=; NEW_SECRET=; SUPERUSER_PW=; TLS=no; PORT=
   while [ $# -gt 0 ]; do
     case "$1" in
       --domain) DOMAIN=$2; shift 2 ;;
       --email) EMAIL=$2; shift 2 ;;
       --superuser-email) SUPERUSER_EMAIL=$2; shift 2 ;;
+      --port) PORT=$2; shift 2 ;;
       *) die "unknown option: $1" ;;
     esac
   done
-  [ -n "$DOMAIN" ] && [ -n "$EMAIL" ] || die "usage: server.sh setup --domain <host> --email <certbot email> [--superuser-email <email>]"
+  [ -n "$DOMAIN" ] && [ -n "$EMAIL" ] || die "usage: server.sh setup --domain <host> --email <certbot email> [--port <n>] [--superuser-email <email>]"
   [ -r /etc/debian_version ] || die "this script is for Debian/Ubuntu"
 
   install_packages
   create_user_and_dirs
   install_pocketbase
   write_env_file
+  # Port: --port, else keep the one already in use, else the default.
+  PORT=${PORT:-$(current_port)}; PORT=${PORT:-$DEFAULT_PORT}
+  valid_port "$PORT" || die "invalid port '$PORT' (use a number from 1024 to 65535)"
+  set_env_value PW_PORT "$PORT"
   install_service
   install_backup
   do_release || die "first release failed"
@@ -189,7 +216,7 @@ cmd_setup() {
   configure_firewall
 
   say "Done"
-  echo "Site:            http$([ "$TLS" = yes ] && echo s)://$DOMAIN"
+  echo "Site:            http$([ "$TLS" = yes ] && echo s)://$DOMAIN   (app listens on 127.0.0.1:$PORT)"
   echo "Admin UI:        http$([ "$TLS" = yes ] && echo s)://$DOMAIN/_/"
   [ -n "$SUPERUSER_PW" ] && echo "Superuser login: $SUPERUSER_EMAIL / $SUPERUSER_PW   (shown once; change it in the admin UI)"
   [ -n "$NEW_SECRET" ] && echo "Webhook secret:  $NEW_SECRET   (saved in $ENV_FILE; put this in the repeater system's X-Webhook-Secret header)"
