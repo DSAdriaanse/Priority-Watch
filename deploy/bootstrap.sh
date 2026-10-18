@@ -3,7 +3,11 @@
 #
 #   scp deploy/bootstrap.sh root@your-server:
 #   ssh root@your-server
-#   bash bootstrap.sh --domain priority.apps.swcrs.org --email you@example.org --superuser-email you@example.org
+#   bash bootstrap.sh --domain priority.apps.swcrs.org --email you@example.org --superuser-email you@example.org [--port 8090]
+#
+# It asks which local port the app should listen on and suggests the first free one starting at 8090
+# (so a second copy on the same server gets 8091, and so on). Pass --port to skip the question.
+# The port is only used between Nginx and the app on this machine; it is not opened in the firewall.
 #
 # It installs Node, gets the code from your private GitHub repo using a read-only deploy key, builds it,
 # and sets up PocketBase, systemd, Nginx + TLS, firewall and backups. Re-running is safe.
@@ -15,13 +19,59 @@ REPO=${REPO:-git@github.com:DSAdriaanse/Priority-Watch.git}
 BRANCH=${BRANCH:-main}
 SRC=${SRC:-/opt/priority-watch-src}
 KEY=/root/.ssh/priority-watch-deploy
-DOMAIN=; EMAIL=; SU_EMAIL=
+DOMAIN=; EMAIL=; SU_EMAIL=; PORT=
+ENV_FILE=${ENV_FILE:-/etc/priority-watch/env}
+
+# --- port selection
+port_in_use() { (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null; }
+valid_port() { [[ "$1" =~ ^[0-9]+$ ]] && [ "$1" -ge 1024 ] && [ "$1" -le 65535 ]; }
+existing_port() { [ -f "$ENV_FILE" ] && sed -n 's/^PW_PORT=//p' "$ENV_FILE" | head -1 || true; }
+
+# Suggested default: the port this install already uses, else the first free port from 8090 up.
+suggest_port() {
+  local p; p=$(existing_port)
+  if [ -n "$p" ]; then echo "$p"; return; fi
+  p=8090
+  while port_in_use "$p"; do p=$((p + 1)); done
+  echo "$p"
+}
+
+# Fills PORT: from --port, or by asking (when run from a terminal), or with the suggestion.
+choose_port() {
+  local def current problem
+  def=$(suggest_port); current=$(existing_port)
+  while true; do
+    if [ -z "$PORT" ]; then
+      if [ -t 0 ]; then
+        read -r -p "Local port for the app (Nginx forwards to it; not opened to the internet) [$def]: " PORT </dev/tty
+        PORT=${PORT:-$def}
+      else
+        PORT=$def; echo "No terminal to ask on, using port $PORT"
+      fi
+    fi
+    if ! valid_port "$PORT"; then
+      problem="'$PORT' is not a valid port. Use a number from 1024 to 65535."
+    elif [ "$PORT" != "$current" ] && port_in_use "$PORT"; then
+      problem="Port $PORT is already in use on this server."
+    else
+      return 0
+    fi
+    echo "$problem" >&2
+    [ -t 0 ] || exit 1
+    PORT=
+  done
+}
+
+# Lets tests load the functions above without running the installer.
+[ "${BOOTSTRAP_SOURCE_ONLY:-}" = 1 ] && return 0
+
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --domain) DOMAIN=$2; shift 2 ;;
     --email) EMAIL=$2; shift 2 ;;
     --superuser-email) SU_EMAIL=$2; shift 2 ;;
+    --port) PORT=$2; shift 2 ;;
     --branch) BRANCH=$2; shift 2 ;;
     --repo) REPO=$2; shift 2 ;;
     *) echo "unknown option: $1" >&2; exit 2 ;;
@@ -31,7 +81,9 @@ say() { printf '\n==> %s\n' "$*"; }
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 [ "$(id -u)" = 0 ] || die "run as root"
 [ -r /etc/debian_version ] || die "this script is for Debian/Ubuntu"
-[ -n "$DOMAIN" ] && [ -n "$EMAIL" ] || die "usage: bash bootstrap.sh --domain <host> --email <certbot email> [--superuser-email <email>] [--branch <name>]"
+[ -n "$DOMAIN" ] && [ -n "$EMAIL" ] || die "usage: bash bootstrap.sh --domain <host> --email <certbot email> [--superuser-email <email>] [--port <n>] [--branch <name>]"
+
+choose_port
 
 say "Base packages"
 export DEBIAN_FRONTEND=noninteractive
@@ -98,4 +150,4 @@ git -C "$SRC" rev-parse --verify --quiet "origin/$BRANCH" >/dev/null || die "bra
 
 git -C "$SRC" checkout --quiet -B "$BRANCH" "origin/$BRANCH"
 install -m 755 "$SRC/deploy/update.sh" /usr/local/bin/priority-watch-update
-exec /usr/local/bin/priority-watch-update --branch "$BRANCH" --setup --domain "$DOMAIN" --email "$EMAIL" ${SU_EMAIL:+--superuser-email "$SU_EMAIL"}
+exec /usr/local/bin/priority-watch-update --branch "$BRANCH" --setup --domain "$DOMAIN" --email "$EMAIL" --port "$PORT" ${SU_EMAIL:+--superuser-email "$SU_EMAIL"}
