@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { listRepeaters } from "@/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioTower } from "lucide-react";
-import RepeaterControls from "@/components/RepeaterControls";
+import RepeaterControls from "@/features/dtmf/RepeaterControls";
 
 // REPEATER CONTROL (/dtmf, admin or operator): pick a repeater and a saved command and send it.
 // The real work is in components/RepeaterControls.jsx.

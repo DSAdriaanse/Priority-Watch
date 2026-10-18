@@ -6,7 +6,7 @@ import { Download, Upload, Loader2, FileSpreadsheet } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import {
   REPEATER_COLUMNS, GUIDANCE_COLUMNS, serializeRepeater, serializeGuidance, parseRepeaterRow, parseGuidanceRow,
-} from "@/lib/workbook";
+} from "@/features/settings/workbook";
 
 // Export/import Repeaters + Guidance as a two-sheet .xlsx workbook.
 // Runs entirely in the browser: the file never goes to a server, and the server never

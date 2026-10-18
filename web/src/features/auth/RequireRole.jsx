@@ -1,5 +1,5 @@
-import { useAuth } from "@/lib/AuthContext";
-import AccessDenied from "@/components/AccessDenied";
+import { useAuth } from "@/features/auth/AuthContext";
+import AccessDenied from "@/features/auth/AccessDenied";
 
 // Screen guard: shows its children only to the given role, otherwise "Access denied".
 export default function RequireRole({ role, children }) {

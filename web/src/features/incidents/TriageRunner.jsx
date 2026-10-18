@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { addIncidentLogEntry, auth, updateIncident } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, RotateCcw } from "lucide-react";
-import StatusBadge from "@/components/StatusBadge";
+import StatusBadge from "@/features/incidents/StatusBadge";
 import { useToast } from "@/components/ui/use-toast";
 
 const RANK = { critical: 4, high: 3, medium: 2, low: 1 };

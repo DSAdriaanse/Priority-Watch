@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AutoTextarea } from "@/components/ListEditor";
+import { AutoTextarea } from "@/features/guidance/ListEditor";
 import { Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, Copy, AlertTriangle, SkipForward } from "lucide-react";
 
 const PRIORITIES = ["critical", "high", "medium", "low"];

@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Phone, Trash2, Pencil } from "lucide-react";
-import StatusBadge from "@/components/StatusBadge";
+import StatusBadge from "@/features/incidents/StatusBadge";
 import { useToast } from "@/components/ui/use-toast";
 
 const emptyRepeater = { node_number: "", name: "", callsign: "", location: "", state: "", frequency: "", coverage_area: "", link_webhook_url: "", delink_webhook_url: "", dtmf_link_code: "", dtmf_delink_code: "", status: "online", notes: "" };

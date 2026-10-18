@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus, Trash2, Pencil, BookOpen, Copy } from "lucide-react";
-import { formatCategory } from "@/lib/incidentTaxonomy";
+import { formatCategory } from "@/features/incidents/incidentTaxonomy";
 
 // GUIDANCE LIST (/guidance, admin only): all response scripts. Click one to edit it in
 // the full-page editor (pages/GuidanceEditor.jsx).

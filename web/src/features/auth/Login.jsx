@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LogIn, Mail, Lock, Loader2 } from "lucide-react";
-import AuthLayout from "@/components/AuthLayout";
-import GoogleIcon from "@/components/GoogleIcon";
-import { safeReturnTo } from "@/lib/authReturnTo";
+import AuthLayout from "@/features/auth/AuthLayout";
+import GoogleIcon from "@/features/auth/GoogleIcon";
+import { safeReturnTo } from "@/features/auth/authReturnTo";
 
 // SIGN-IN (/login). After success it reloads the page at the address the person was
 // trying to reach (returnTo, validated in lib/authReturnTo.js so it cannot send people to another site).

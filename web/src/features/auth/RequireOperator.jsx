@@ -1,5 +1,5 @@
-import { useAuth } from "@/lib/AuthContext";
-import AccessDenied from "@/components/AccessDenied";
+import { useAuth } from "@/features/auth/AuthContext";
+import AccessDenied from "@/features/auth/AccessDenied";
 
 // Guards a route to admin or operator volunteers (not priority_watch or limited).
 export default function RequireOperator({ children }) {
