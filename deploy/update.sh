@@ -6,6 +6,7 @@
 #   priority-watch-update --branch main   switch branch first
 #   priority-watch-update --setup --domain ... --email ... [--superuser-email ...]   (used by bootstrap.sh)
 set -euo pipefail
+export PATH="$PATH:/usr/local/sbin:/usr/sbin:/sbin"
 
 SRC=${SRC:-/opt/priority-watch-src}
 CONF=${CONF:-/etc/priority-watch/update.conf}      # holds BRANCH

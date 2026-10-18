@@ -8,6 +8,8 @@
 #
 # Layout: code in /opt/priority-watch, data in /var/lib/priority-watch, secrets in /etc/priority-watch/env.
 set -euo pipefail
+# su (without -) and some ssh setups omit the sbin folders that useradd, ufw, nginx, sshd and runuser live in.
+export PATH="$PATH:/usr/local/sbin:/usr/sbin:/sbin"
 
 APP=${APP:-/opt/priority-watch}
 DATA=${DATA:-/var/lib/priority-watch}
@@ -30,8 +32,10 @@ install_packages() {
   apt-get update -qq
   apt-get install -y -qq nginx certbot python3-certbot-nginx sqlite3 unzip curl ca-certificates \
     ufw fail2ban unattended-upgrades cron >/dev/null
-  echo 'unattended-upgrades unattended-upgrades/enable_auto_updates boolean true' | debconf-set-selections
-  dpkg-reconfigure -f noninteractive unattended-upgrades
+  cat > /etc/apt/apt.conf.d/20auto-upgrades <<'APT'
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+APT
 }
 
 create_user_and_dirs() {
