@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { entities, functions, auth } from "@/api";
+import { entities, functions } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {

@@ -41,7 +41,6 @@ Two rules explain most of the design:
 | `deploy/` | Scripts that install and update the server | Only for server work |
 | `scripts/` | One-off tools: Base44 importer, create the first admin | Rarely |
 | `docs/` | Written explanations (this file included) | |
-| `legacy/base44-original/` | A frozen copy of the original Base44 app, kept for comparison. **Nothing runs from it.** It has files with the same names as the real code, which is confusing. Ignore it. | No |
 
 ## Reading order
 

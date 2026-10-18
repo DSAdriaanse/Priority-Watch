@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { entities, functions, auth } from "@/api";
+import { entities } from "@/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollText } from "lucide-react";
 
