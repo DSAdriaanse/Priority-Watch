@@ -1,7 +1,9 @@
+import type { IncidentCategory } from "@/api";
+
 // CAP-aligned incident taxonomy shared across the app.
 // Must match the category list in backend/pb_migrations/1760000000_schema.js.
 // Adding a category means changing both, plus a new migration.
-export const INCIDENT_CATEGORIES = [
+export const INCIDENT_CATEGORIES: IncidentCategory[] = [
   "medical",
   "fire",
   "law_enforcement",
@@ -13,7 +15,7 @@ export const INCIDENT_CATEGORIES = [
   "other",
 ];
 
-export const CATEGORY_LABELS = {
+export const CATEGORY_LABELS: Record<IncidentCategory, string> = {
   medical: "Medical",
   fire: "Fire",
   law_enforcement: "Law Enforcement",
@@ -25,4 +27,5 @@ export const CATEGORY_LABELS = {
   other: "Other",
 };
 
-export const formatCategory = (c) => (c ? CATEGORY_LABELS[c] || c.replace(/_/g, " ") : "");
+export const formatCategory = (c?: string | null): string =>
+  c ? CATEGORY_LABELS[c as IncidentCategory] || c.replace(/_/g, " ") : "";

@@ -2,6 +2,9 @@
 // (volunteer_contacts: phone and which alerts they get).
 import { pb } from "./pb";
 import { table } from "./records";
+import type { User, Volunteer } from "./types";
+
+interface ContactRow { id: string; user: string; phone: string; notify_sms: boolean; notify_email: boolean }
 
 const users = () => pb.collection("users");
 const contacts = () => pb.collection("volunteer_contacts");
@@ -16,8 +19,8 @@ const randomPassword = () => {
 
 // Joins each login account (users) with its private contact row (volunteer_contacts).
 // Non-admins cannot read volunteer_contacts, which is how phone numbers stay private.
-export async function listVolunteers() {
-  const [people, cons] = await Promise.all([users().getFullList({ sort: "name" }), contacts().getFullList()]);
+export async function listVolunteers(): Promise<Volunteer[]> {
+  const [people, cons] = await Promise.all([users().getFullList<User>({ sort: "name" }), contacts().getFullList<ContactRow>()]);
   const byUser = new Map(cons.map((c) => [c.user, c]));
   return people.map((u) => {
     const c = byUser.get(u.id);
@@ -36,17 +39,17 @@ export async function listVolunteers() {
   });
 }
 
-async function saveContact(userId, v, existingId) {
+async function saveContact(userId: string, v: Partial<Volunteer>, existingId: string | null | undefined) {
   const data = { user: userId, phone: v.phone || "", notify_sms: !!v.notify_sms, notify_email: !!v.notify_email };
   return existingId ? contacts().update(existingId, data) : contacts().create(data);
 }
 
 // Create or update. For a new person with no password set, they get an email to choose one.
-export async function saveVolunteer(v) {
+export async function saveVolunteer(v: Partial<Volunteer> & { name: string; role: Volunteer["role"]; email: string }): Promise<{ id: string; resetEmailSent: boolean }> {
   const profile = { name: v.name, callsign: v.callsign || "", role: v.role, active: !!v.active };
 
   if (v.id) {
-    const patch = { ...profile };
+    const patch: Record<string, unknown> = { ...profile };
     if (v.email) patch.email = v.email;
     if (v.password) { patch.password = v.password; patch.passwordConfirm = v.password; }
     await users().update(v.id, patch);
@@ -78,11 +81,11 @@ export async function saveVolunteer(v) {
   return { id: created.id, resetEmailSent };
 }
 
-export const deleteVolunteer = (id) => users().delete(id);
-export const sendPasswordReset = (email) => users().requestPasswordReset(email);
+export const deleteVolunteer = (id: string) => users().delete(id);
+export const sendPasswordReset = (email: string) => users().requestPasswordReset(email);
 
 // The active team, for assignment menus and the dashboard. Names, callsigns and
 // roles only; phone numbers stay private to admins.
-const directory = table("users");
+const directory = table<User>("users");
 export const listActiveVolunteers = () => directory.list({ where: { active: true } });
 export const watchVolunteers = directory.watch;
