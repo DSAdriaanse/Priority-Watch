@@ -1,5 +1,6 @@
 import React from "react";
 
+// Centered card used by the sign-in, forgot-password and reset-password screens.
 export default function AuthLayout({ icon: Icon, title, subtitle, footer, children }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">

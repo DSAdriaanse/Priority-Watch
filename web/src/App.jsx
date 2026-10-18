@@ -24,6 +24,12 @@ import ResetPassword from '@/pages/ResetPassword';
 import DtmfControl from '@/pages/DtmfControl';
 import DtmfLog from '@/pages/DtmfLog';
 
+// THE MAP OF THE APP: which web address shows which screen, and who may see it.
+//   /login, /forgot-password, /reset-password   open to everyone
+//   everything else                             needs a signed-in user (ProtectedRoute)
+//   RequireOperator   admin or operator only (radio control screens)
+//   RequireRole admin admin only (repeaters, guidance, volunteers, settings)
+// These guards only hide screens. The real enforcement is on the server.
 const AuthenticatedApp = () => {
   const { isLoadingAuth } = useAuth();
 
@@ -63,6 +69,8 @@ const AuthenticatedApp = () => {
 };
 
 
+// App = the outer wrappers every screen sits inside: sign-in state, the data cache,
+// the router, and the pop-up message area (Toaster).
 function App() {
 
   return (

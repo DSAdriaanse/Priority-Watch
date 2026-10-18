@@ -38,6 +38,12 @@ const toPayload = (d) => ({
   triage_flow: cleanTriageFlow(d.triage_flow),
 });
 
+// GUIDANCE EDITOR (/guidance/new and /guidance/:id, admin only).
+// Two tabs: Write-up (initial actions, steps, key questions) and Triage flow
+// (questions that set priority and add steps), with a live preview of the triage.
+// How it works: edits go into `draft`; `baseline` is the last saved version as text.
+// "Unsaved changes" simply means JSON(draft) differs from baseline. toPayload()
+// strips blank rows before anything is saved.
 export default function GuidanceEditor() {
   const { id } = useParams();
   const isNew = !id;

@@ -2,6 +2,11 @@
 //
 // Link or delink a repeater through its configured outgoing webhook.
 //   POST /api/pw/repeater-control   { repeater_id, action: "link"|"delink", incident_id? }
+//
+// Each repeater stores two webhook addresses (set on the Repeaters page): one
+// that links it to the wider network and one that delinks it. This route calls
+// the right one, updates the repeater's status, and (when an incident is given)
+// records it in that incident's log.
 
 routerAdd("POST", "/api/pw/repeater-control", (e) => {
   const u = require(`${__hooks}/lib/util.js`);

@@ -29,6 +29,8 @@ export const AutoTextarea = React.forwardRef(function AutoTextarea({ value, onCh
 });
 
 // An ordered list of text rows. Enter adds a row below, Backspace on an empty row removes it.
+// Numbered, auto-growing list of text rows (steps, key questions). Enter adds a row below,
+// Backspace on an empty row removes it, Alt+Up and Alt+Down reorder.
 export default function ListEditor({ items, onChange, placeholder = "Type here…", addLabel = "Add item", numbered = true, emptyText }) {
   const list = Array.isArray(items) ? items : [];
   const refs = useRef([]);

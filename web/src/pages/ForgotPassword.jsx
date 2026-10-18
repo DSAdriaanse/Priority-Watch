@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Mail, ArrowLeft, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 
+// FORGOT PASSWORD (/forgot-password): asks the server to email a reset link.
+// It never says whether the email exists, so it cannot be used to discover accounts.
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);

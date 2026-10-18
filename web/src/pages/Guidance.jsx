@@ -7,6 +7,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { Plus, Trash2, Pencil, BookOpen, Copy } from "lucide-react";
 import { formatCategory } from "@/lib/incidentTaxonomy";
 
+// GUIDANCE LIST (/guidance, admin only): all response scripts. Click one to edit it in
+// the full-page editor (pages/GuidanceEditor.jsx).
 export default function Guidance() {
   const [guides, setGuides] = useState([]);
   const navigate = useNavigate();

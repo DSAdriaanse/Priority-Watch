@@ -20,6 +20,11 @@ import { useAuth } from "@/lib/AuthContext";
 // categories now sourced from @/lib/incidentTaxonomy
 const agencyLabels = { "911": "911 / Emergency", police: "Police", fire: "Fire", emt: "EMT / EMS", power: "Power Company", gas: "Gas Company", other: "Other" };
 
+// ONE INCIDENT (/incident/:id): the working screen during a live emergency.
+// Header with status, owner and priority; emergency contacts and repeater controls
+// on the left; guidance and triage on the right; the incident log underneath.
+// Buttons here call the server routes: notify the team, resolve (AI summary +
+// WordPress), close as false alarm. Once resolved, the server blocks further edits.
 export default function IncidentDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -42,6 +47,8 @@ export default function IncidentDetail() {
   const [error, setError] = useState(null);
   const [notificationResults, setNotificationResults] = useState(null);
 
+  // Load the incident plus everything around it in parallel: its log, its repeaters,
+  // their emergency contacts, all guidance scripts and the active team.
   const load = async () => {
     setError(null);
     try {
@@ -61,6 +68,8 @@ export default function IncidentDetail() {
       setContacts(conts);
       setGuidance(guides);
       setVolunteers(vols);
+      // Preselect the best-matching guidance script: same category AND subtype wins,
+      // otherwise the script for the category with no subtype.
       if (inc.incident_category) {
         const bySubtype = guides.find((x) => x.incident_category === inc.incident_category && x.incident_subtype && inc.incident_subtype && x.incident_subtype.toLowerCase() === inc.incident_subtype.toLowerCase());
         const byCategory = guides.find((x) => x.incident_category === inc.incident_category && !x.incident_subtype);
@@ -75,6 +84,7 @@ export default function IncidentDetail() {
 
   useEffect(() => { load(); }, [id]);
 
+  // Save one edited field straight away, then update the screen without a reload.
   const saveField = async (field, value) => {
     await entities.Incident.update(id, { [field]: value });
     setIncident({ ...incident, [field]: value });
@@ -106,6 +116,8 @@ export default function IncidentDetail() {
     }
   };
 
+  // Asks the server to alert Slack, SMS and email. The server replies with a result
+  // per channel and per person, which NotificationResults displays.
   const notifyTeam = async () => {
     setBusy(true);
     setNotificationResults(null);
@@ -126,6 +138,7 @@ export default function IncidentDetail() {
     }
   };
 
+  // Hand the incident to a named operator and write the handoff into the log.
   const assignOwner = async (name) => {
     if (!name) return;
     setBusy(true);
@@ -155,6 +168,8 @@ export default function IncidentDetail() {
     await assignOwner(name);
   };
 
+  // Close with an AI-written summary (and WordPress post if configured). The work
+  // happens on the server in backend/pb_hooks/incidents.pb.js.
   const resolve = async () => {
     if (!confirm("Are you sure? This will close out the incident and prevent further changes.")) return;
     setResolving(true);
@@ -170,6 +185,7 @@ export default function IncidentDetail() {
     }
   };
 
+  // Close without a summary and without publishing anything.
   const closeFalseAlarm = async () => {
     if (!confirm("Are you sure? This will close out the incident and prevent further changes.")) return;
     setFalseAlarm(true);
@@ -184,6 +200,7 @@ export default function IncidentDetail() {
     }
   };
 
+  // Permanent delete. The server only allows admins.
   const deleteIncident = async () => {
     if (!confirm("Delete this report permanently? This cannot be undone.")) return;
     setDeleting(true);

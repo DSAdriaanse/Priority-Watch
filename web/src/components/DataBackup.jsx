@@ -11,6 +11,10 @@ import {
 // Export/import Repeaters + Guidance as a two-sheet .xlsx workbook.
 // Runs entirely in the browser: the file never goes to a server, and the server never
 // fetches a URL on the user's behalf.
+// Excel backup on the Settings page. Export writes Repeaters and Guidance to a .xlsx
+// file. Import reads one back: a row whose name (repeaters) or title (guidance)
+// matches an existing record updates it; otherwise a new record is created.
+// Nothing is deleted by an import. Column layout lives in lib/workbook.js.
 export default function DataBackup() {
   const { toast } = useToast();
   const fileRef = useRef(null);

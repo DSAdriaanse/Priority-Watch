@@ -8,6 +8,11 @@ import { useToast } from "@/components/ui/use-toast";
 const RANK = { critical: 4, high: 3, medium: 2, low: 1 };
 const higher = (a, b) => ((RANK[a] || 0) >= (RANK[b] || 0) ? a : b);
 
+// Walks an operator through a script's triage questions one at a time.
+// The result priority is the highest of the script's starting priority and every
+// chosen answer's priority; chosen answers also add steps. An answer marked "skip
+// rest" ends the questions early. When given an `incident`, "Apply to Incident" saves
+// the priority and logs the answers. Without one (the editor preview) it is read-only.
 export default function TriageRunner({ guidance, incident, onApplied }) {
   const { toast } = useToast();
   const flow = Array.isArray(guidance?.triage_flow)

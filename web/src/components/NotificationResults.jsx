@@ -10,6 +10,9 @@ const slackErrors = {
   missing_scope: "The Slack connection is missing permission to post.",
 };
 
+// Shows what happened after "Notify team": one line per channel and person, with a
+// plain-English hint for common Slack problems. "Accepted" means the service took the
+// message, not that it was delivered.
 export default function NotificationResults({ results }) {
   if (!results) return null;
   return (

@@ -34,6 +34,7 @@ legacy/     Read-only copy of the original Base44 code, kept as the porting refe
 
 Feature-complete port of the Base44 app: schema and rules, API hooks (19 end-to-end tests in `backend/test`), the React front end, a browser smoke test (`web/e2e/smoke.mjs`), a Base44 CSV importer, and Debian deploy files.
 
+- Reading the code (start here): `docs/code-map.md`
 - Install and run: `docs/deployment.md`
 - Custom endpoints: `docs/endpoints.md`
 - What changed from Base44 and why: `docs/porting-notes.md`

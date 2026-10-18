@@ -17,6 +17,8 @@ import { useToast } from "@/components/ui/use-toast";
 
 const DTMF_RE = /^[0-9A-D*#]{1,24}$/;
 
+// Settings panel for the saved DTMF commands operators can send: add, edit, enable or
+// disable, reorder (swaps the `order` numbers of two neighbours) and delete.
 export default function DtmfCommandManager() {
   const { toast } = useToast();
   const [commands, setCommands] = useState([]);

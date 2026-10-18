@@ -3,6 +3,7 @@ import { pb } from "./pb";
 
 const users = () => pb.collection("users");
 
+// The app expects a full_name field; PocketBase stores the name as `name`.
 const shape = (record) => (record ? { ...record, full_name: record.name || record.email } : null);
 
 export const auth = {

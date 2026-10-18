@@ -8,6 +8,8 @@ const DefaultFallback = () => (
   </div>
 );
 
+// Wraps all signed-in screens. While the login is being checked it shows a spinner;
+// with no valid login it shows `unauthenticatedElement` (App.jsx sends people to /login).
 export default function ProtectedRoute({ fallback = <DefaultFallback />, unauthenticatedElement }) {
   const { isAuthenticated, isLoadingAuth, authChecked, authError, checkUserAuth } = useAuth();
 

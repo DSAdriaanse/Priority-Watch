@@ -3,6 +3,10 @@ import { Link, useLocation, Outlet } from "react-router-dom";
 import { Radio, LayoutDashboard, Server, BookOpen, Users, Settings as SettingsIcon, Siren, FileText, Menu, X, LogOut, RadioTower, ScrollText } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 
+// The frame around every signed-in screen: sidebar menu plus page area (<Outlet />).
+// Each menu item lists who sees it. `roles` uses the app's two levels (admin / user);
+// `volunteerRoles` narrows "user" further to operators, hiding the radio screens
+// from watch-only people. Hiding a menu item is cosmetic: the server enforces access.
 const navItems = [
 { label: "Dashboard", path: "/", icon: LayoutDashboard, roles: ["admin", "user", "limited"] },
 { label: "Reports", path: "/reports", icon: FileText, roles: ["admin", "user", "limited"] },

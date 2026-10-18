@@ -4,7 +4,14 @@
 //   POST /api/pw/notify    notify the team (SMS, email, Slack)
 //   POST /api/pw/resolve   close an incident (AI summary + optional WordPress post)
 // Both require an active admin or operator.
+//
+// Anything that talks to the outside world (SMS, Slack, Anthropic, WordPress)
+// lives here on the server so API keys never reach the browser. The browser
+// calls these routes through web/src/api/functions.js.
 
+// ---- Notify the team --------------------------------------------------------
+// Sends one message to Slack plus every active volunteer by SMS and/or email, and
+// returns what happened for each so the screen can show it.
 routerAdd("POST", "/api/pw/notify", (e) => {
   const u = require(`${__hooks}/lib/util.js`);
   const notify = require(`${__hooks}/lib/notify.js`);
@@ -12,6 +19,7 @@ routerAdd("POST", "/api/pw/notify", (e) => {
 
   const user = u.requireRole(e, ["admin", "operator"]);
   const body = e.requestInfo().body || {};
+  // The caller may send a ready-made message, or just the details to fill the template with.
   const message = u.trunc(body.message, 1000);
   const nature = u.trunc(body.nature, 5000);
   if (!message && !nature) {
@@ -23,7 +31,7 @@ routerAdd("POST", "/api/pw/notify", (e) => {
     try { $app.findRecordById("incidents", incidentId); } catch (_) { throw new NotFoundError("Incident not found."); }
   }
 
-  const cfg = u.settings();
+  const cfg = u.settings(); // non-secret settings (template, Slack channel)
   const text = message || notify.buildAlertMessage(
     u.setting(cfg, "notification_template"),
     u.trunc(body.repeater_name, 200),
@@ -32,6 +40,7 @@ routerAdd("POST", "/api/pw/notify", (e) => {
   );
 
   // Keep each delivery outcome so one failure does not hide the others.
+  // Volunteers are contacted one after another, so a very large team is slow.
   const results = [];
   const sl = slack.postMessage(u.setting(cfg, "slack_channel"), text);
   results.push({ channel: "slack", ok: sl.ok, error: sl.error });
@@ -55,6 +64,7 @@ routerAdd("POST", "/api/pw/notify", (e) => {
   const notified = results.filter((r) => r.ok).length;
   const failed = results.filter((r) => !r.ok).length;
 
+  // If this came from an incident screen, write what happened into its log.
   if (incidentId) {
     const problems = results
       .filter((r) => !r.ok)
@@ -76,6 +86,11 @@ routerAdd("POST", "/api/pw/notify", (e) => {
   });
 });
 
+// ---- Resolve an incident ----------------------------------------------------
+// Order of work: (1) false alarm shortcut, (2) build a prompt from the incident
+// and its log, (3) ask Anthropic for a write-up, (4) post that to WordPress,
+// (5) mark the incident resolved. Steps 3 and 4 are optional and a failure in
+// either still closes the incident.
 routerAdd("POST", "/api/pw/resolve", (e) => {
   const u = require(`${__hooks}/lib/util.js`);
 
@@ -110,6 +125,7 @@ routerAdd("POST", "/api/pw/resolve", (e) => {
     .join("\n");
   const repeaters = u.repeaterNames(incident).join(", ");
 
+  // The text sent to the AI. Edit this to change the tone or layout of reports.
   const prompt =
     "You are the summarizer for a GMRS Priority Watch emergency coordination system.\n" +
     "Generate a clear, professional incident report suitable for public posting on a ham-radio community site.\n\n" +
@@ -165,7 +181,8 @@ routerAdd("POST", "/api/pw/resolve", (e) => {
   const title = (lines[0] || "").replace(/^#+\s*/, "").slice(0, 120) || ("Incident Report - " + repeaters);
   const content = lines.slice(1).join("\n\n") || aiSummary;
 
-  // Publish to WordPress (only an AI-written summary is published).
+  // Publish to WordPress (only an AI-written summary is published). The site
+  // address and user come from Settings; the application password is a server secret.
   const cfg = u.settings();
   const wpUrl = u.setting(cfg, "wordpress_url");
   const wpUser = u.setting(cfg, "wordpress_username");
@@ -189,6 +206,7 @@ routerAdd("POST", "/api/pw/resolve", (e) => {
     } catch (_) { /* still resolve the incident */ }
   }
 
+  // Close the incident. After this the collection rules block further edits.
   incident.set("status", "resolved");
   incident.set("ai_summary", aiSummary);
   incident.set("wordpress_post_url", wordpressPostUrl);
