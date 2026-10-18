@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { entities } from "@/api";
+import { createDtmfCommand, deleteDtmfCommand, listDtmfCommands, updateDtmfCommand, updateDtmfCommands } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,7 +29,7 @@ export default function DtmfCommandManager() {
 
   const load = async () => {
     setLoading(true);
-    const list = await entities.DtmfCommand.list("order", 200);
+    const list = await listDtmfCommands();
     setCommands(list || []);
     setLoading(false);
   };
@@ -57,7 +57,7 @@ export default function DtmfCommandManager() {
     }
     try {
       if (editing) {
-        await entities.DtmfCommand.update(editing.id, {
+        await updateDtmfCommand(editing.id, {
           name: form.name.trim(),
           dtmf: form.dtmf.trim().toUpperCase(),
           confirm_required: form.confirm_required,
@@ -65,7 +65,7 @@ export default function DtmfCommandManager() {
         });
       } else {
         const order = commands.length ? (commands[commands.length - 1].order || 0) + 1 : 0;
-        await entities.DtmfCommand.create({
+        await createDtmfCommand({
           name: form.name.trim(),
           dtmf: form.dtmf.trim().toUpperCase(),
           confirm_required: form.confirm_required,
@@ -82,13 +82,13 @@ export default function DtmfCommandManager() {
   };
 
   const toggle = async (cmd) => {
-    await entities.DtmfCommand.update(cmd.id, { enabled: !cmd.enabled });
+    await updateDtmfCommand(cmd.id, { enabled: !cmd.enabled });
     load();
   };
 
   const remove = async (cmd) => {
     if (!window.confirm(`Delete command "${cmd.name}"?`)) return;
-    await entities.DtmfCommand.delete(cmd.id);
+    await deleteDtmfCommand(cmd.id);
     load();
     toast({ title: "Command deleted" });
   };
@@ -98,7 +98,7 @@ export default function DtmfCommandManager() {
     if (target < 0 || target >= commands.length) return;
     const a = commands[idx];
     const b = commands[target];
-    await entities.DtmfCommand.bulkUpdate([
+    await updateDtmfCommands([
       { id: a.id, order: b.order },
       { id: b.id, order: a.order },
     ]);

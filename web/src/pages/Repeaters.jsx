@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { entities } from "@/api";
+import { createContact, createRepeater, deleteContact, deleteRepeater, listContacts, listRepeaters, updateRepeater } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,9 +29,9 @@ export default function Repeaters() {
 
   const load = async () => {
     setLoading(true);
-    const reps = await entities.Repeater.list();
+    const reps = await listRepeaters();
     setRepeaters(reps);
-    const allContacts = await entities.EmergencyContact.list();
+    const allContacts = await listContacts();
     const byRep = {};
     allContacts.forEach((c) => { (byRep[c.repeater_id] ||= []).push(c); });
     setContacts(byRep);
@@ -43,31 +43,31 @@ export default function Repeaters() {
   const saveRepeater = async () => {
     if (!editing.name) return;
     if (editing.id) {
-      await entities.Repeater.update(editing.id, editing);
+      await updateRepeater(editing.id, editing);
     } else {
-      await entities.Repeater.create(editing);
+      await createRepeater(editing);
     }
     setEditing(null);
     load();
   };
 
-  const deleteRepeater = async (r) => {
+  const removeRepeater = async (r) => {
     if (!confirm(`Delete repeater ${r.name}?`)) return;
-    await entities.Repeater.delete(r.id);
+    await deleteRepeater(r.id);
     const conts = contacts[r.id] || [];
-    for (const c of conts) await entities.EmergencyContact.delete(c.id);
+    for (const c of conts) await deleteContact(c.id);
     load();
   };
 
   const addContact = async () => {
     if (!newContact.phone || !contactFor) return;
-    await entities.EmergencyContact.create({ ...newContact, repeater_id: contactFor });
+    await createContact({ ...newContact, repeater_id: contactFor });
     setNewContact({ agency_type: "911", agency_name: "", phone: "", alternate_phone: "", notes: "" });
     load();
   };
 
-  const deleteContact = async (c) => {
-    await entities.EmergencyContact.delete(c.id);
+  const removeContact = async (c) => {
+    await deleteContact(c.id);
     load();
   };
 
@@ -100,7 +100,7 @@ export default function Repeaters() {
                   <div className="flex gap-2 flex-wrap">
                     <Button size="sm" variant="outline" onClick={() => setContactFor(r.id)} className="bg-gray-900 border-gray-700 text-gray-200"><Phone className="w-3.5 h-3.5 mr-1" /> Contacts ({(contacts[r.id] || []).length})</Button>
                     <Button size="sm" variant="outline" onClick={() => setEditing(r)} className="bg-gray-900 border-gray-700 text-gray-200"><Pencil className="w-3.5 h-3.5" /></Button>
-                    <Button size="sm" variant="outline" onClick={() => deleteRepeater(r)} className="bg-gray-900 border-gray-700 text-red-400"><Trash2 className="w-3.5 h-3.5" /></Button>
+                    <Button size="sm" variant="outline" onClick={() => removeRepeater(r)} className="bg-gray-900 border-gray-700 text-red-400"><Trash2 className="w-3.5 h-3.5" /></Button>
                   </div>
                 </div>
               </CardContent>
@@ -144,7 +144,7 @@ export default function Repeaters() {
             {(contacts[contactFor] || []).map((c) => (
               <div key={c.id} className="flex items-center justify-between py-2 border-b border-gray-700/50">
                 <div><div className="text-sm text-gray-200">{agencyLabels[c.agency_type]}: {c.agency_name}</div><div className="text-xs text-emerald-400 font-mono">{c.phone}</div></div>
-                <Button size="sm" variant="outline" onClick={() => deleteContact(c)} className="bg-gray-900 border-gray-700 text-red-400"><Trash2 className="w-3.5 h-3.5" /></Button>
+                <Button size="sm" variant="outline" onClick={() => removeContact(c)} className="bg-gray-900 border-gray-700 text-red-400"><Trash2 className="w-3.5 h-3.5" /></Button>
               </div>
             ))}
           </div>
