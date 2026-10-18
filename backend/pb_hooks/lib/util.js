@@ -53,13 +53,20 @@ function logUpdate(incidentId, operatorName, message, actionType) {
   return rec;
 }
 
+// Names of the repeaters on an incident (stored as a JSON array in a JSON field).
+// PocketBase's JS runtime returns a JSON field as raw bytes (an array of numbers), not as parsed data,
+// so decode those to text before parsing.
 function repeaterNames(incident) {
-  const raw = incident.get("repeater_name");
+  let raw = incident.get("repeater_name");
+  if (Array.isArray(raw) && raw.length > 0 && raw.every((n) => typeof n === "number")) {
+    raw = Buffer.from(raw).toString("utf8");
+  }
   let arr = [];
   try {
     arr = typeof raw === "string" ? JSON.parse(raw) : (raw || []);
   } catch (_) { arr = []; }
-  return Array.isArray(arr) ? arr : [String(arr)];
+  if (!Array.isArray(arr)) arr = arr ? [String(arr)] : [];
+  return arr.map((x) => String(x));
 }
 
 module.exports = { env, trunc, settings, setting, requireRole, displayName, logUpdate, repeaterNames };
