@@ -2,8 +2,8 @@
 //
 // Inbound alert from the repeater system.
 //   POST /api/pw/webhook/inbound
-//   POST /api/functions/handleInboundWebhook   (old Base44 path, so the repeater
-//                                               system only needs its host changed)
+//   POST /api/functions/handleInboundWebhook   (legacy path, so the repeater system
+//                                               only needs its host changed; remove after cutover)
 //
 // Authentication: shared secret in the X-Webhook-Secret header, or in the JSON
 // body field "secret". The secret is never accepted in the URL. If

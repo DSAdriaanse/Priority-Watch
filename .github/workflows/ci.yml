@@ -1,0 +1,53 @@
+# Runs on every pull request and push to main/dev: front-end build and lint,
+# deploy-script tests, and the backend end-to-end tests against a real PocketBase.
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main, dev]
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: web/package-lock.json }
+      - run: npm ci
+        working-directory: web
+      - run: npm run lint
+        working-directory: web
+      - run: npm run build
+        working-directory: web
+
+  deploy-scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: for f in deploy/*.sh deploy/test/*.sh; do bash -n "$f"; done
+      - run: bash deploy/test/install.test.sh
+
+  backend:
+    runs-on: ubuntu-latest
+    env:
+      PB_VERSION: "0.36.0"
+      PB_SU_EMAIL: ci@test.local
+      PB_SU_PASS: ci-test-pass-1234
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Install PocketBase
+        run: |
+          curl -fsSL -o pb.zip "https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_amd64.zip"
+          unzip -q pb.zip pocketbase
+      - name: Start mock services and PocketBase
+        run: |
+          node backend/test/mock-services.mjs 9100 &
+          ./pocketbase superuser upsert "$PB_SU_EMAIL" "$PB_SU_PASS" --dir ./ci-data --migrationsDir backend/pb_migrations
+          INBOUND_WEBHOOK_SECRET=s3cret TEXTBELT_KEY=k TEXTBELT_URL=http://127.0.0.1:9100/textbelt \
+          SLACK_BOT_TOKEN=x SLACK_API_URL=http://127.0.0.1:9100/slack ANTHROPIC_API_KEY=a ANTHROPIC_API_URL=http://127.0.0.1:9100/anthropic \
+          WORDPRESS_APP_PASSWORD=wp ALLMON_PASS=ap APP_URL=http://127.0.0.1:8090 RATE_LIMIT_DEFAULTS=off \
+          ./pocketbase serve --dir ./ci-data --migrationsDir backend/pb_migrations --hooksDir backend/pb_hooks --http 127.0.0.1:8090 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8090/api/health >/dev/null && break; sleep 1; done
+      - run: node --test backend/test/api.test.mjs

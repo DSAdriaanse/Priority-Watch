@@ -39,7 +39,7 @@ Two rules explain most of the design:
 | `backend/pb_hooks/` | The server routes and start-up settings | Yes |
 | `backend/test/` | Automated tests for the server routes | When changing the backend |
 | `deploy/` | Scripts that install and update the server | Only for server work |
-| `scripts/` | One-off tools: Base44 importer, create the first admin | Rarely |
+| `scripts/` | One-off tools: data importer for the previous app (remove after cutover), create the first admin | Rarely |
 | `docs/` | Written explanations (this file included) | |
 
 ## Reading order

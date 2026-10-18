@@ -8,7 +8,7 @@ backend/pb_data/
 backend/pocketbase
 backend/pocketbase.exe
 
-# Real exports from the old Base44 app (volunteer phones and emails, settings secrets)
+# Real exports from the previous app (volunteer phones and emails, settings secrets)
 *_export.csv
 data/
 

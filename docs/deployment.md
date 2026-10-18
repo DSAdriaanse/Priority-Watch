@@ -120,7 +120,7 @@ The admin UI is at `/_/`. Restrict it by IP in `nginx.conf` if you like.
 
 ## Load your data
 
-Either import the Base44 export:
+Either import the previous app's export:
 
 ```bash
 export PB_URL=https://priority.apps.swcrs.org PB_SUPERUSER_EMAIL=you@example.org PB_SUPERUSER_PASSWORD=...
@@ -146,7 +146,7 @@ curl -X POST https://priority.apps.swcrs.org/api/pw/webhook/inbound \
   -d '{"node_number":"408","alert_type":"Priority Traffic","nature":"test"}'
 ```
 
-Rotate the old secret: the Base44 export contains it in clear text.
+Rotate the old secret: the old export contains it in clear text.
 
 ## Backups
 

@@ -322,7 +322,7 @@ PROXY
 Next:
   1. Edit $ENV_FILE (Textbelt, SMTP, Slack, Allmon3, WordPress, Anthropic), then:  systemctl restart priority-watch
   2. Create the first app admin (from your laptop):  PB_URL=https://$DOMAIN node scripts/create-admin.mjs you@example.org "Name" CALL
-     or import Base44 data:  node scripts/import-base44.mjs <export-folder> --dry-run
+     or import the previous app's data:  node scripts/import-base44.mjs <export-folder> --dry-run
   3. Harden SSH once your key login works: PasswordAuthentication no, PermitRootLogin no in /etc/ssh/sshd_config.d/
   4. Copy /var/backups/priority-watch off this machine regularly.
 NEXT
