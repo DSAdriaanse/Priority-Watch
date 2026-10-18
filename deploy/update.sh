@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Runs ON THE SERVER. Builds the app from the git clone and releases it.
-# Installed as /usr/local/bin/priority-watch-update by bootstrap.sh.
+# Installed as /usr/local/bin/<name>-update by bootstrap.sh (priority-watch-update for the default instance).
+# The instance name is taken from the command's own name, so a second instance installed with
+# --name blog gets /usr/local/bin/blog-update and its own folders. NAME=... in the environment overrides it.
 #
 #   priority-watch-update                 pull the branch, build, release (backup, health check, rollback)
 #   priority-watch-update --branch main   switch branch first
@@ -8,8 +10,13 @@
 set -euo pipefail
 export PATH="$PATH:/usr/local/sbin:/usr/sbin:/sbin"
 
-SRC=${SRC:-/opt/priority-watch-src}
-CONF=${CONF:-/etc/priority-watch/update.conf}      # holds BRANCH
+if [ -z "${NAME:-}" ]; then
+  NAME=$(basename "$0"); NAME=${NAME%-update}
+  [ "$NAME" != "$(basename "$0")" ] || NAME=priority-watch     # run as update.sh, not through the installed command
+fi
+export NAME
+SRC=${SRC:-/opt/$NAME-src}
+CONF=${CONF:-/etc/$NAME/update.conf}      # holds BRANCH
 [ -f "$CONF" ] && . "$CONF"
 BRANCH=${BRANCH:-main}
 MODE=release; ARGS=()
@@ -29,13 +36,13 @@ git -C "$SRC" fetch --quiet origin
 git -C "$SRC" checkout --quiet -B "$BRANCH" "origin/$BRANCH"
 echo "    now at $(git -C "$SRC" log -1 --format='%h %s')"
 # keep the installed command current (install replaces the file, so the running copy is unaffected)
-[ -f "$SRC/deploy/update.sh" ] && [ "${NO_SELF_UPDATE:-}" != 1 ] && install -m 755 "$SRC/deploy/update.sh" /usr/local/bin/priority-watch-update
+[ -f "$SRC/deploy/update.sh" ] && [ "${NO_SELF_UPDATE:-}" != 1 ] && install -m 755 "$SRC/deploy/update.sh" "/usr/local/bin/$NAME-update"
 mkdir -p "$(dirname "$CONF")"; echo "BRANCH=$BRANCH" > "$CONF"
 
 echo "==> Building front end"
 ( cd "$SRC/web" && npm ci --no-audit --no-fund && npm run build )
 
-STAGE=/var/tmp/priority-watch-stage
+STAGE=/var/tmp/$NAME-stage
 rm -rf "$STAGE"; mkdir -p "$STAGE/deploy"
 cp -a "$SRC/web/dist" "$STAGE/dist"
 cp -a "$SRC/backend/pb_hooks" "$SRC/backend/pb_migrations" "$STAGE/"
