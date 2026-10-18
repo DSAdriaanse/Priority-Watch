@@ -9,6 +9,7 @@
 # and sets up PocketBase, systemd, Nginx + TLS, firewall and backups. Re-running is safe.
 # Afterwards, update with:  priority-watch-update
 set -euo pipefail
+export PATH="$PATH:/usr/local/sbin:/usr/sbin:/sbin"
 
 REPO=${REPO:-git@github.com:DSAdriaanse/Priority-Watch.git}
 BRANCH=${BRANCH:-main}
