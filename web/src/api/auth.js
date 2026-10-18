@@ -17,14 +17,22 @@ export const auth = {
   },
 
   // Validate the stored session with the server and pick up any role changes.
+  // Only a real "your session is not valid" answer from the server (401/403/404 etc.) signs the user out.
+  // A network blip, a restarting server, a rate limit or a request aborted by a page reload must NOT:
+  // those keep the stored session so people are not logged out by a hiccup.
   async refresh() {
     if (!pb.authStore.isValid) return null;
     try {
       const res = await users().authRefresh();
       return shape(res.record);
     } catch (e) {
-      pb.authStore.clear();
-      return null;
+      const status = e?.status ?? 0;
+      const sessionRejected = status >= 400 && status < 500 && status !== 408 && status !== 429;
+      if (sessionRejected) {
+        pb.authStore.clear();
+        return null;
+      }
+      return shape(pb.authStore.record);
     }
   },
 

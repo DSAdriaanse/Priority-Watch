@@ -11,6 +11,7 @@ import Dashboard from '@/pages/Dashboard';
 import IncidentDetail from '@/pages/IncidentDetail';
 import Repeaters from '@/pages/Repeaters';
 import Guidance from '@/pages/Guidance';
+import GuidanceEditor from '@/pages/GuidanceEditor';
 import Volunteers from '@/pages/Volunteers';
 import Settings from '@/pages/Settings';
 import Reports from '@/pages/Reports';
@@ -50,6 +51,8 @@ const AuthenticatedApp = () => {
           <Route path="/dtmf-log" element={<RequireOperator><DtmfLog /></RequireOperator>} />
           <Route path="/repeaters" element={<RequireRole role="admin"><Repeaters /></RequireRole>} />
           <Route path="/guidance" element={<RequireRole role="admin"><Guidance /></RequireRole>} />
+          <Route path="/guidance/new" element={<RequireRole role="admin"><GuidanceEditor /></RequireRole>} />
+          <Route path="/guidance/:id" element={<RequireRole role="admin"><GuidanceEditor /></RequireRole>} />
           <Route path="/volunteers" element={<RequireRole role="admin"><Volunteers /></RequireRole>} />
           <Route path="/settings" element={<RequireRole role="admin"><Settings /></RequireRole>} />
         </Route>
