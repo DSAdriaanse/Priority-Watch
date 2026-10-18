@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
 import { Radio, LayoutDashboard, Server, BookOpen, Users, Settings as SettingsIcon, Siren, FileText, Menu, X, LogOut, RadioTower, ScrollText } from "lucide-react";
-import { useAuth } from "@/lib/AuthContext";
+import { useAuth } from "@/features/auth/AuthContext";
 
 // The frame around every signed-in screen: sidebar menu plus page area (<Outlet />).
 // Each menu item lists who sees it. `roles` uses the app's two levels (admin / user);

@@ -7,8 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Save, Webhook, MessageSquare, FileText, Slack, RadioTower, CheckCircle2, CircleAlert } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import DataBackup from "@/components/DataBackup";
-import DtmfCommandManager from "@/components/DtmfCommandManager";
+import DataBackup from "@/features/settings/DataBackup";
+import DtmfCommandManager from "@/features/dtmf/DtmfCommandManager";
 
 const DEFAULT_TEMPLATE = "GMRS PRIORITY WATCH ALERT\nRepeater: {repeater}\nType: {alert_type}\nDetails: {nature}\nCheck the Priority Watch dashboard immediately.";
 

@@ -2,27 +2,27 @@ import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
-import PageNotFound from './lib/PageNotFound';
-import { AuthProvider, useAuth } from '@/lib/AuthContext';
-import ScrollToTop from './components/ScrollToTop';
+import PageNotFound from '@/lib/PageNotFound';
+import { AuthProvider, useAuth } from '@/features/auth/AuthContext';
+import ScrollToTop from '@/components/ScrollToTop';
 // Add page imports here
 import Layout from '@/components/Layout';
-import Dashboard from '@/pages/Dashboard';
-import IncidentDetail from '@/pages/IncidentDetail';
-import Repeaters from '@/pages/Repeaters';
-import Guidance from '@/pages/Guidance';
-import GuidanceEditor from '@/pages/GuidanceEditor';
-import Volunteers from '@/pages/Volunteers';
-import Settings from '@/pages/Settings';
-import Reports from '@/pages/Reports';
-import RequireRole from '@/components/RequireRole';
-import RequireOperator from '@/components/RequireOperator';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import Login from '@/pages/Login';
-import ForgotPassword from '@/pages/ForgotPassword';
-import ResetPassword from '@/pages/ResetPassword';
-import DtmfControl from '@/pages/DtmfControl';
-import DtmfLog from '@/pages/DtmfLog';
+import Dashboard from '@/features/incidents/Dashboard';
+import IncidentDetail from '@/features/incidents/IncidentDetail';
+import Repeaters from '@/features/repeaters/Repeaters';
+import Guidance from '@/features/guidance/Guidance';
+import GuidanceEditor from '@/features/guidance/GuidanceEditor';
+import Volunteers from '@/features/team/Volunteers';
+import Settings from '@/features/settings/Settings';
+import Reports from '@/features/incidents/Reports';
+import RequireRole from '@/features/auth/RequireRole';
+import RequireOperator from '@/features/auth/RequireOperator';
+import ProtectedRoute from '@/features/auth/ProtectedRoute';
+import Login from '@/features/auth/Login';
+import ForgotPassword from '@/features/auth/ForgotPassword';
+import ResetPassword from '@/features/auth/ResetPassword';
+import DtmfControl from '@/features/dtmf/DtmfControl';
+import DtmfLog from '@/features/dtmf/DtmfLog';
 
 // THE MAP OF THE APP: which web address shows which screen, and who may see it.
 //   /login, /forgot-password, /reset-password   open to everyone

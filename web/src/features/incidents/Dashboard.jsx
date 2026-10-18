@@ -10,9 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Siren, Activity, Server, Users, Plus, ArrowRight, Clock } from "lucide-react";
-import StatusBadge from "@/components/StatusBadge";
-import OwnerBadge from "@/components/OwnerBadge";
-import { INCIDENT_CATEGORIES, formatCategory } from "@/lib/incidentTaxonomy";
+import StatusBadge from "@/features/incidents/StatusBadge";
+import OwnerBadge from "@/features/incidents/OwnerBadge";
+import { INCIDENT_CATEGORIES, formatCategory } from "@/features/incidents/incidentTaxonomy";
 
 const priorityLevels = ["critical", "high", "medium", "low"];
 

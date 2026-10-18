@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Search, ArrowRight, Clock, MapPin, ExternalLink, Calendar, Trash2, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { useAuth } from "@/lib/AuthContext";
-import StatusBadge from "@/components/StatusBadge";
-import OwnerBadge from "@/components/OwnerBadge";
-import { INCIDENT_CATEGORIES, formatCategory } from "@/lib/incidentTaxonomy";
+import { useAuth } from "@/features/auth/AuthContext";
+import StatusBadge from "@/features/incidents/StatusBadge";
+import OwnerBadge from "@/features/incidents/OwnerBadge";
+import { INCIDENT_CATEGORIES, formatCategory } from "@/features/incidents/incidentTaxonomy";
 
 const priorityLevels = ["critical", "high", "medium", "low"];
 

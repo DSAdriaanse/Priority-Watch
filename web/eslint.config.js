@@ -7,9 +7,8 @@ import pluginUnusedImports from "eslint-plugin-unused-imports";
 export default [
   {
     files: [
+      "src/features/**/*.{js,mjs,cjs,jsx}",
       "src/components/**/*.{js,mjs,cjs,jsx}",
-      "src/pages/**/*.{js,mjs,cjs,jsx}",
-      "src/Layout.jsx",
     ],
     ignores: ["src/lib/**/*", "src/components/ui/**/*"],
     ...pluginJs.configs.recommended,

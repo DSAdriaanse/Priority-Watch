@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Lock, Loader2, AlertTriangle } from "lucide-react";
-import AuthLayout from "@/components/AuthLayout";
+import AuthLayout from "@/features/auth/AuthLayout";
 
 // RESET PASSWORD (/reset-password?token=...): the page the emailed link opens.
 // Also used when an admin creates your account and you choose your first password.

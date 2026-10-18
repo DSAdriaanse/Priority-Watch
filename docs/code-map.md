@@ -30,10 +30,10 @@ Two rules explain most of the design:
 
 | Folder | What it is | Do you need to read it? |
 |---|---|---|
-| `web/src/pages/` | One file per screen | Yes |
-| `web/src/components/` | Reusable pieces used by the screens | Yes |
+| `web/src/features/` | The screens and their pieces, one folder per feature: `auth`, `incidents`, `guidance`, `repeaters`, `dtmf`, `settings`, `team`. Screens are the files named like the page (Dashboard.jsx, Repeaters.jsx) | Yes |
+| `web/src/components/` | Pieces shared by every feature: Layout (sidebar), ScrollToTop | Occasionally |
 | `web/src/api/` | The only place the front end talks to the server | Yes, it is short |
-| `web/src/lib/` | Small helpers: sign-in state, category list, Excel columns | Occasionally |
+| `web/src/lib/` | Small shared helpers: class-name helper, query client, 404 page | Occasionally |
 | `web/src/components/ui/` | Generic buttons, dialogs, inputs (shadcn) | No, skip it |
 | `backend/pb_migrations/` | The tables and who may read or write them | Yes |
 | `backend/pb_hooks/` | The server routes and start-up settings | Yes |
@@ -48,8 +48,8 @@ Front end:
 
 1. `web/src/App.jsx` the map of web addresses to screens, and who may open each
 2. `web/src/api/index.js`, then one feature file such as `incidents.js` (named functions per feature; `records.js` holds the shared helpers)
-3. `web/src/pages/Dashboard.jsx` the simplest real screen
-4. `web/src/pages/IncidentDetail.jsx` the busiest screen
+3. `web/src/features/incidents/Dashboard.jsx` the simplest real screen
+4. `web/src/features/incidents/IncidentDetail.jsx` the busiest screen (it loads data and runs the actions; the header and three panels are in `features/incidents/detail/`)
 5. `web/src/components/Layout.jsx` the sidebar around every screen
 
 Back end:
@@ -63,7 +63,7 @@ Back end:
 
 ### "An operator resolves an incident"
 
-1. **Screen:** the Resolve button in `web/src/pages/IncidentDetail.jsx` calls `resolve()`, which calls `resolveIncident({ incident_id })`.
+1. **Screen:** the Resolve button in `web/src/features/incidents/IncidentDetail.jsx` calls `resolve()`, which calls `resolveIncident({ incident_id })`.
 2. **Bridge:** `resolveIncident` in `web/src/api/incidents.js` sends `POST /api/pw/resolve`.
 3. **Server:** `backend/pb_hooks/incidents.pb.js` handles that route. It checks the person is an active admin or operator, loads the incident and its log, asks the AI for a write-up, posts it to WordPress if configured, then marks the incident resolved and adds a log entry.
 4. **Rules:** once the status is `resolved`, the `incidents` and `incident_updates` rules in the schema file refuse further edits.
@@ -77,9 +77,9 @@ Back end:
 
 ### "An admin edits a guidance script"
 
-1. `web/src/pages/Guidance.jsx` lists the scripts; clicking one goes to `/guidance/:id`.
-2. `web/src/pages/GuidanceEditor.jsx` loads it with `getGuidance(id)` and keeps edits in a `draft`.
-3. The Write-up tab uses `components/ListEditor.jsx`; the Triage tab uses `components/TriageFlowBuilder.jsx`, with `components/TriageRunner.jsx` as the live preview.
+1. `web/src/features/guidance/Guidance.jsx` lists the scripts; clicking one goes to `/guidance/:id`.
+2. `web/src/features/guidance/GuidanceEditor.jsx` loads it with `getGuidance(id)` and keeps edits in a `draft`.
+3. The Write-up tab uses `features/guidance/ListEditor.jsx`; the Triage tab uses `features/guidance/TriageFlowBuilder.jsx`, with `features/incidents/TriageRunner.jsx` as the live preview.
 4. Save calls `updateGuidance`. There is no custom server code; the table rules in the schema allow admins to write it.
 5. On an incident, the same `TriageRunner` is what operators answer.
 
@@ -91,7 +91,7 @@ Back end:
 | The prompt sent to the AI for incident reports | `backend/pb_hooks/incidents.pb.js`, the `prompt` variable |
 | Who can see or edit a table | `backend/pb_migrations/` (add a **new** migration file; do not edit the existing one on a live database) |
 | Add a field to a table | A new migration file, then the screens that show or edit it |
-| Add an incident category | `schema.js` (`CATEGORIES`) and `web/src/lib/incidentTaxonomy.js`, plus a new migration |
+| Add an incident category | `schema.js` (`CATEGORIES`) and `web/src/features/incidents/incidentTaxonomy.js`, plus a new migration |
 | Which menu items each role sees | `navItems` in `web/src/components/Layout.jsx` and the guards in `web/src/App.jsx` |
 | Add a new server action | A route in `backend/pb_hooks/`, a named function in the matching `web/src/api/` feature file (export it from `index.js`), then call it from a screen |
 | Server settings (SMTP, rate limits) | `/etc/priority-watch/env`; applied at start-up by `backend/pb_hooks/bootstrap.pb.js` |

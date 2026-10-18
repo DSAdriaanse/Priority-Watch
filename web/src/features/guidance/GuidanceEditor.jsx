@@ -9,10 +9,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft, Save, Trash2, Loader2, Play } from "lucide-react";
-import ListEditor, { AutoTextarea } from "@/components/ListEditor";
-import TriageFlowBuilder, { cleanTriageFlow } from "@/components/TriageFlowBuilder";
-import TriageRunner from "@/components/TriageRunner";
-import { INCIDENT_CATEGORIES, formatCategory } from "@/lib/incidentTaxonomy";
+import ListEditor, { AutoTextarea } from "@/features/guidance/ListEditor";
+import TriageFlowBuilder, { cleanTriageFlow } from "@/features/guidance/TriageFlowBuilder";
+import TriageRunner from "@/features/incidents/TriageRunner";
+import { INCIDENT_CATEGORIES, formatCategory } from "@/features/incidents/incidentTaxonomy";
 
 const EMPTY = { title: "", incident_category: "medical", incident_subtype: "", priority_level: "high", initial_actions: "", steps: [], questions_to_ask: [], triage_flow: [] };
 
