@@ -1,7 +1,8 @@
 // Guidance scripts: what an operator reads out or follows during an incident.
 import { table } from "./records";
+import type { GuidanceScript } from "./types";
 
-const scripts = table("guidance_scripts");
+const scripts = table<GuidanceScript>("guidance_scripts");
 
 export const listGuidance = () => scripts.list();
 export const getGuidance = scripts.get;

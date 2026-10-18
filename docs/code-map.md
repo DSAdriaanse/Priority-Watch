@@ -47,7 +47,7 @@ Two rules explain most of the design:
 Front end:
 
 1. `web/src/App.jsx` the map of web addresses to screens, and who may open each
-2. `web/src/api/index.js`, then one feature file such as `incidents.js` (named functions per feature; `records.js` holds the shared helpers)
+2. `web/src/api/index.ts`, then `types.ts` (the shape of every record, matching the schema), then one feature file such as `incidents.ts` (named functions per feature; `records.ts` holds the shared helpers)
 3. `web/src/features/incidents/Dashboard.jsx` the simplest real screen
 4. `web/src/features/incidents/IncidentDetail.jsx` the busiest screen (it loads data and runs the actions; the header and three panels are in `features/incidents/detail/`)
 5. `web/src/components/Layout.jsx` the sidebar around every screen
@@ -64,7 +64,7 @@ Back end:
 ### "An operator resolves an incident"
 
 1. **Screen:** the Resolve button in `web/src/features/incidents/IncidentDetail.jsx` calls `resolve()`, which calls `resolveIncident({ incident_id })`.
-2. **Bridge:** `resolveIncident` in `web/src/api/incidents.js` sends `POST /api/pw/resolve`.
+2. **Bridge:** `resolveIncident` in `web/src/api/incidents.ts` sends `POST /api/pw/resolve`.
 3. **Server:** `backend/pb_hooks/incidents.pb.js` handles that route. It checks the person is an active admin or operator, loads the incident and its log, asks the AI for a write-up, posts it to WordPress if configured, then marks the incident resolved and adds a log entry.
 4. **Rules:** once the status is `resolved`, the `incidents` and `incident_updates` rules in the schema file refuse further edits.
 5. **Back on screen:** `resolve()` shows a message and reloads the incident.
@@ -91,9 +91,9 @@ Back end:
 | The prompt sent to the AI for incident reports | `backend/pb_hooks/incidents.pb.js`, the `prompt` variable |
 | Who can see or edit a table | `backend/pb_migrations/` (add a **new** migration file; do not edit the existing one on a live database) |
 | Add a field to a table | A new migration file, then the screens that show or edit it |
-| Add an incident category | `schema.js` (`CATEGORIES`) and `web/src/features/incidents/incidentTaxonomy.js`, plus a new migration |
+| Add an incident category | `schema.js` (`CATEGORIES`) and `web/src/features/incidents/incidentTaxonomy.ts`, plus a new migration |
 | Which menu items each role sees | `navItems` in `web/src/components/Layout.jsx` and the guards in `web/src/App.jsx` |
-| Add a new server action | A route in `backend/pb_hooks/`, a named function in the matching `web/src/api/` feature file (export it from `index.js`), then call it from a screen |
+| Add a new server action | A route in `backend/pb_hooks/`, a named function in the matching `web/src/api/` feature file (export it from `index.ts`), then call it from a screen |
 | Server settings (SMTP, rate limits) | `/etc/priority-watch/env`; applied at start-up by `backend/pb_hooks/bootstrap.pb.js` |
 | Colors and spacing | Tailwind classes in the screens; theme in `web/tailwind.config.js` and `web/src/index.css` |
 
@@ -109,5 +109,6 @@ Back end:
 
 - Inside a hook route handler, load helpers with `require(...)` **inside** the handler. Top-level variables in the file are not visible there. Every hook file does this.
 - PocketBase hands JSON fields to hooks as raw bytes. `repeaterNames()` in `lib/util.js` decodes them. Anything new that reads a JSON field in a hook needs the same treatment.
-- The built-in `users` collection uses `created`/`updated`; every other collection uses `created_date`/`updated_date`. `web/src/api/records.js` hides the difference for sorting.
+- The built-in `users` collection uses `created`/`updated`; every other collection uses `created_date`/`updated_date`. `web/src/api/records.ts` hides the difference for sorting.
 - Rolling back an update restores the code but does not undo database migrations.
+- **TypeScript:** `web/src/api/`, `lib/` and the category list are TypeScript; screens are still `.jsx`. Run `npm run typecheck` in `web/` (CI does too). When you change a field in the schema, change `api/types.ts` to match. Screens move to TypeScript one at a time, because switching on checking for all of them at once reports about a thousand errors, mostly from untyped UI components.
