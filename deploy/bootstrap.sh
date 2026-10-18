@@ -23,6 +23,10 @@
 #   --listen <ipv4>          proxy mode: address the app listens on (default: this server's main address)
 #   --proxy-ip <ip[,ip...]>  proxy mode: address or range of the proxy allowed through the firewall,
 #                            or "none" if you manage the firewall elsewhere
+#   --name <name>            instance name (default priority-watch). Everything is named after it: the service, the
+#                            folders /opt/<name> and /var/lib/<name>, /etc/<name>, the Nginx site, the service user, the
+#                            backup job, and the update command <name>-update. Use it to run a second copy
+#                            (or another app built the same way) on one server.
 #   --branch <name>          Git branch to install (default main)
 #   --repo <url>             Git repository (default the Priority-Watch repo over SSH)
 #   --yes                    do not ask anything; use defaults for what is not given, fail if a required value is missing
@@ -30,16 +34,22 @@
 #
 # It installs Node, gets the code from your private GitHub repo using a read-only deploy key, builds it,
 # and sets up PocketBase, systemd, the firewall and backups (plus Nginx and TLS in local mode).
-# Re-running is safe. Afterwards, update with:  priority-watch-update
+# Re-running is safe. Afterwards, update with:  priority-watch-update   (or <name>-update)
 set -euo pipefail
 export PATH="$PATH:/usr/local/sbin:/usr/sbin:/sbin"
 
 REPO=${REPO:-git@github.com:DSAdriaanse/Priority-Watch.git}
 BRANCH=${BRANCH:-}
-SRC=${SRC:-/opt/priority-watch-src}
-KEY=/root/.ssh/priority-watch-deploy
-ENV_FILE=${ENV_FILE:-/etc/priority-watch/env}
-CONF=${CONF:-/etc/priority-watch/update.conf}
+NAME=${NAME:-priority-watch}
+# Every path is named after the instance. SRC, ENV_FILE and CONF can still be overridden from the environment.
+_SRC=${SRC:-}; _ENV_FILE=${ENV_FILE:-}; _CONF=${CONF:-}
+derive_paths() {
+  SRC=${_SRC:-/opt/$NAME-src}
+  KEY=/root/.ssh/$NAME-deploy
+  ENV_FILE=${_ENV_FILE:-/etc/$NAME/env}
+  CONF=${_CONF:-/etc/$NAME/update.conf}
+}
+derive_paths
 DOMAIN=; EMAIL=; SU_EMAIL=; PORT=; MODE=; LISTEN=; PROXY_IPS=
 YES=0; DRY_RUN=0
 
@@ -91,6 +101,7 @@ is_ip_or_range() {   # IPv4 or IPv6 address, with an optional /prefix
     return 1
   fi
 }
+v_name() { [[ "$1" =~ ^[a-z][a-z0-9-]{0,23}$ ]] || { echo "'$1' is not a valid name. Use 1 to 24 characters: lowercase letters, digits and dashes, starting with a letter."; return 1; }; }
 v_nonempty() { [ -n "$1" ] || { echo "A value is required."; return 1; }; }
 v_any() { return 0; }
 v_domain() { [[ "$1" =~ ^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$ ]] || { echo "'$1' does not look like a hostname or IP address."; return 1; }; }
@@ -173,6 +184,7 @@ while [ $# -gt 0 ]; do
     --port) PORT=$2; shift 2 ;;
     --listen) LISTEN=$2; shift 2 ;;
     --proxy-ip) PROXY_IPS=$2; shift 2 ;;
+    --name) NAME=$2; shift 2 ;;
     --branch) BRANCH=$2; shift 2 ;;
     --repo) REPO=$2; shift 2 ;;
     --yes|-y) YES=1; shift ;;
@@ -181,6 +193,8 @@ while [ $# -gt 0 ]; do
     *) echo "unknown option: $1 (see --help)" >&2; exit 2 ;;
   esac
 done
+msg=$(v_name "$NAME") || die "--name: $msg"
+derive_paths
 if [ "$DRY_RUN" != 1 ]; then
   [ "$(id -u)" = 0 ] || die "run as root"
   [ -r /etc/debian_version ] || die "this script is for Debian/Ubuntu"
@@ -214,6 +228,8 @@ args=(--branch "$BRANCH" --setup --domain "$DOMAIN" --mode "$MODE" --port "$PORT
 
 {
   printf '\nInstallation plan\n'
+  if [ -f "$ENV_FILE" ]; then printf '  Instance name     %s (already installed here: this updates it in place; to add another copy, use --name)\n' "$NAME"
+  else printf '  Instance name     %s\n' "$NAME"; fi
   printf '  Public hostname   %s\n' "$DOMAIN"
   if [ "$MODE" = local ]; then
     printf '  Web access        Nginx on this server, TLS certificate for %s via Let'"'"'s Encrypt\n' "$EMAIL"
@@ -230,7 +246,7 @@ args=(--branch "$BRANCH" --setup --domain "$DOMAIN" --mode "$MODE" --port "$PORT
 } >&2
 
 if [ "$DRY_RUN" = 1 ]; then
-  printf 'Dry run, nothing was changed. The install would run:\n  priority-watch-update' >&2
+  printf 'Dry run, nothing was changed. The install would run:\n  %s' "$NAME-update" >&2
   printf ' %q' "${args[@]}" >&2; printf '\n' >&2
   exit 0
 fi
@@ -270,13 +286,21 @@ ensure_node
 if [[ "$REPO" == git@* ]]; then
   mkdir -p /root/.ssh; chmod 700 /root/.ssh
   if [ ! -f "$KEY" ]; then
-    ssh-keygen -t ed25519 -N "" -C "priority-watch-server-$(hostname)" -f "$KEY" >/dev/null
+    ssh-keygen -t ed25519 -N "" -C "$NAME-server-$(hostname)" -f "$KEY" >/dev/null
   fi
   touch /root/.ssh/config; chmod 600 /root/.ssh/config
-  if ! grep -q "priority-watch-deploy" /root/.ssh/config; then
+  # The first install uses the plain github.com host. Another instance gets its own host alias, so it can
+  # use its own deploy key (GitHub accepts a deploy key on one repository only).
+  GH_HOST=github.com
+  if [ "$NAME" != priority-watch ] && [[ "$REPO" == git@github.com:* ]]; then
+    GH_HOST=github-$NAME
+    REPO="git@$GH_HOST:${REPO#git@github.com:}"
+  fi
+  if ! grep -q "$NAME-deploy" /root/.ssh/config; then
     cat >> /root/.ssh/config <<CFG
 
-Host github.com
+Host $GH_HOST
+  HostName github.com
   IdentityFile $KEY
   IdentitiesOnly yes
   StrictHostKeyChecking accept-new
@@ -303,5 +327,5 @@ git -C "$SRC" fetch --quiet origin
 git -C "$SRC" rev-parse --verify --quiet "origin/$BRANCH" >/dev/null || die "branch '$BRANCH' not found in the repo. Merge the pull requests, or pass --branch <name>."
 
 git -C "$SRC" checkout --quiet -B "$BRANCH" "origin/$BRANCH"
-install -m 755 "$SRC/deploy/update.sh" /usr/local/bin/priority-watch-update
-exec /usr/local/bin/priority-watch-update "${args[@]}"
+install -m 755 "$SRC/deploy/update.sh" "/usr/local/bin/$NAME-update"
+exec env NAME="$NAME" "/usr/local/bin/$NAME-update" "${args[@]}"

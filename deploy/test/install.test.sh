@@ -242,13 +242,58 @@ for bad in "--domain a.example --mode proxy --listen 10.0.0.9" "--domain a.examp
 done
 out=$(sim --domain a.example --email a@example.org --port 80 2>&1); ok "setup refuses a privileged port" "echo \"\$out\" | grep -q 'invalid port'"
 
+echo "--- instances (--name)"
+vn() { boot v_name "$1" >/dev/null; }
+for v in blog priority-watch a b2 my-app-2; do ok "name accepts '$v'" "vn '$v'"; done
+for v in "" Blog 1blog -blog "my app" "a/b" "a.b" abcdefghijklmnopqrstuvwxy; do ok "name rejects '$v'" "! vn '$v'"; done
+bp() { ( unset ENV_FILE CONF SRC; export NAME=$1 BOOTSTRAP_SOURCE_ONLY=1; source "$HERE/bootstrap.sh"; echo "$SRC $KEY $ENV_FILE $CONF" ); }
+check "bootstrap paths, default instance" "$(bp priority-watch)" "/opt/priority-watch-src /root/.ssh/priority-watch-deploy /etc/priority-watch/env /etc/priority-watch/update.conf"
+check "bootstrap paths, named instance" "$(bp blog)" "/opt/blog-src /root/.ssh/blog-deploy /etc/blog/env /etc/blog/update.conf"
+sp() { ( unset ENV_FILE APP DATA SVC_USER BACKUP_DIR; export NAME=$1 SERVER_SH_SOURCE_ONLY=1; source "$HERE/server.sh"; echo "$APP $DATA $ENV_FILE $SVC_USER $BACKUP_DIR" ); }
+check "server paths, default instance (unchanged from before)" "$(sp priority-watch)" "/opt/priority-watch /var/lib/priority-watch /etc/priority-watch/env pwatch /var/backups/priority-watch"
+check "server paths, named instance" "$(sp blog)" "/opt/blog /var/lib/blog /etc/blog/env blog /var/backups/blog"
+out=$(NAME='Bad Name' SERVER_SH_SOURCE_ONLY=1 bash "$HERE/server.sh" 2>&1); check "server.sh refuses a bad name" "$?" "1"
+ok "server.sh says why" "echo \"\$out\" | grep -q 'invalid instance name'"
+out=$(cd "$TMP" && timeout 20 bash "$HERE/bootstrap.sh" --dry-run --yes --name 'Bad Name' --domain a.example --email a@x.org --port $((BASE+20)) 2>&1); rc=$?
+check "bootstrap refuses a bad --name" "$rc" "1"
+ok "bootstrap explains the name rule" "echo \"\$out\" | grep -q 'not a valid name'"
+out=$(cd "$TMP" && ENV_FILE="$TMP/none" CONF="$TMP/none" timeout 20 bash "$HERE/bootstrap.sh" --dry-run --yes --name blog --domain blog.example --email a@x.org --port $((BASE+20)) 2>&1); rc=$?
+check "bootstrap --name dry run succeeds" "$rc" "0"
+ok "plan shows the instance name" "echo \"\$out\" | grep -q 'Instance name     blog'"
+ok "plan shows the instance's update command" "echo \"\$out\" | grep -q 'blog-update --branch main --setup'"
+# unit file and cron line for two instances
+inst() {  # inst <name> -> renders the unit and cron line into $TMP/<name>/
+  ( unset ENV_FILE APP DATA SVC_USER BACKUP_DIR; export NAME=$1 SERVER_SH_SOURCE_ONLY=1; source "$HERE/server.sh"
+    mkdir -p "$TMP/$1/units" "$TMP/$1/cron" "$TMP/$1/app"
+    UNIT_DIR="$TMP/$1/units"; CRON_DIR="$TMP/$1/cron"; APP="$TMP/$1/app"
+    systemctl() { :; }
+    install_service >/dev/null; install_backup ) >/dev/null 2>&1
+}
+inst priority-watch; inst blog
+ok "default unit: user, paths and env file as before" "grep -q '^User=pwatch' $TMP/priority-watch/units/priority-watch.service && grep -q '^EnvironmentFile=/etc/priority-watch/env' $TMP/priority-watch/units/priority-watch.service && grep -q -- '--dir /var/lib/priority-watch/pb_data' $TMP/priority-watch/units/priority-watch.service"
+ok "named unit: own file, user, env file and data folder" "grep -q '^User=blog' $TMP/blog/units/blog.service && grep -q '^EnvironmentFile=/etc/blog/env' $TMP/blog/units/blog.service && grep -q -- '--dir /var/lib/blog/pb_data' $TMP/blog/units/blog.service && grep -q '^ReadWritePaths=/var/lib/blog' $TMP/blog/units/blog.service"
+ok "named unit: nothing of the default instance left" "! grep -q 'priority-watch\|pwatch' $TMP/blog/units/blog.service"
+ok "units keep the port settings from the env file" "grep -q -- '--http \${PW_LISTEN}:\${PW_PORT}' $TMP/blog/units/blog.service"
+ok "no placeholders left in a unit" "! grep -q '__[A-Z]*__' $TMP/blog/units/blog.service"
+ok "named cron: own file, user, data and backup folder" "grep -q ' blog DATA=/var/lib/blog/pb_data OUT=/var/backups/blog ' $TMP/blog/cron/blog && grep -q 'logger -t blog-backup' $TMP/blog/cron/blog"
+ok "default cron: backs up the default data" "grep -q ' pwatch DATA=/var/lib/priority-watch/pb_data OUT=/var/backups/priority-watch ' $TMP/priority-watch/cron/priority-watch"
+# update.sh learns the name from its own file name
+cp "$HERE/update.sh" "$TMP/blog-update"; cp "$HERE/update.sh" "$TMP/update.sh"
+if [ "$(id -u)" = 0 ]; then
+  out=$(bash "$TMP/blog-update" 2>&1); ok "update command named blog-update looks in /opt/blog-src" "echo \"\$out\" | grep -q '/opt/blog-src'"
+  out=$(bash "$TMP/update.sh" 2>&1); ok "update.sh run directly uses the default instance" "echo \"\$out\" | grep -q '/opt/priority-watch-src'"
+  out=$(NAME=other bash "$TMP/update.sh" 2>&1); ok "NAME in the environment overrides" "echo \"\$out\" | grep -q '/opt/other-src'"
+else
+  echo "SKIP update.sh name tests (need root)"
+fi
+
 echo "--- generated config"
 sed -e "s|__DOMAIN__|priority.example.org|g" -e "s|__BACKEND__|127.0.0.1:8123|g" "$HERE/nginx.conf" > "$TMP/site.conf"
 check "nginx: no placeholders left" "$(grep -c '__' "$TMP/site.conf")" "0"
 check "nginx: every proxy_pass uses the chosen port" "$(grep -c 'proxy_pass http://127.0.0.1:8123;' "$TMP/site.conf")" "3"
 check "nginx: old fixed port is gone" "$(grep -c '8090' "$TMP/site.conf")" "0"
 ok "systemd unit reads address and port from the env file" "grep -q -- '--http \${PW_LISTEN}:\${PW_PORT}' '$HERE/priority-watch.service'"
-ok "systemd unit loads that env file" "grep -q '^EnvironmentFile=/etc/priority-watch/env' '$HERE/priority-watch.service'"
+ok "systemd unit loads the instance's env file" "grep -q '^EnvironmentFile=__ENV_FILE__' '$HERE/priority-watch.service'"
 ok ".env.example documents the settings" "grep -q '^PW_PORT=8090' '$HERE/../.env.example' && grep -q '^PW_LISTEN=127.0.0.1' '$HERE/../.env.example' && grep -q '^PW_MODE=local' '$HERE/../.env.example'"
 
 echo

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Runs ON THE SERVER. Started by priority-watch-update (deploy/update.sh), which stages the files first.
+# Runs ON THE SERVER. Started by <name>-update (deploy/update.sh), which stages the files first.
 #
+#   NAME=<name> server.sh ...   instance name (default priority-watch); update.sh passes it on.
 #   server.sh setup --domain priority.example.org --email you@example.org [--port 8090] [--superuser-email you@example.org]
 #   server.sh setup --domain priority.example.org --mode proxy --listen 10.0.0.9 --proxy-ip 10.0.0.5 [--port 8090]
 #       One-time (and safe to re-run) server preparation + first release.
@@ -14,15 +15,22 @@
 #   server.sh release
 #       Install the code staged next to this script, restart, health check, roll back on failure.
 #
-# Layout: code in /opt/priority-watch, data in /var/lib/priority-watch, secrets in /etc/priority-watch/env.
+# Layout: code in /opt/<name>, data in /var/lib/<name>, secrets in /etc/<name>/env, unit <name>.service,
+# user pwatch (or <name> for any other name), backups in /var/backups/<name>.
 set -euo pipefail
 # su (without -) and some ssh setups omit the sbin folders that useradd, ufw, nginx, sshd and runuser live in.
 export PATH="$PATH:/usr/local/sbin:/usr/sbin:/sbin"
 
-APP=${APP:-/opt/priority-watch}
-DATA=${DATA:-/var/lib/priority-watch}
-ENV_FILE=${ENV_FILE:-/etc/priority-watch/env}
-SVC_USER=pwatch
+NAME=${NAME:-priority-watch}
+[[ "$NAME" =~ ^[a-z][a-z0-9-]{0,23}$ ]] || { echo "ERROR: invalid instance name '$NAME' (1 to 24 lowercase letters, digits or dashes, starting with a letter)" >&2; exit 1; }
+APP=${APP:-/opt/$NAME}
+DATA=${DATA:-/var/lib/$NAME}
+ENV_FILE=${ENV_FILE:-/etc/$NAME/env}
+BACKUP_DIR=${BACKUP_DIR:-/var/backups/$NAME}
+UNIT_DIR=${UNIT_DIR:-/etc/systemd/system}
+CRON_DIR=${CRON_DIR:-/etc/cron.d}
+# The first instance keeps its original service user name; others get a user named after the instance.
+if [ "$NAME" = priority-watch ]; then SVC_USER=${SVC_USER:-pwatch}; else SVC_USER=${SVC_USER:-$NAME}; fi
 PB_VERSION=${PB_VERSION:-0.36.0}
 DEFAULT_PORT=8090
 DEFAULT_LISTEN=127.0.0.1
@@ -104,7 +112,7 @@ APT
 create_user_and_dirs() {
   say "Creating service user and directories"
   id "$SVC_USER" >/dev/null 2>&1 || useradd --system --home "$DATA" --shell /usr/sbin/nologin "$SVC_USER"
-  install -d -o "$SVC_USER" -g "$SVC_USER" -m 750 "$DATA" "$DATA/pb_data" /var/backups/priority-watch
+  install -d -o "$SVC_USER" -g "$SVC_USER" -m 750 "$DATA" "$DATA/pb_data" "$BACKUP_DIR"
   install -d -m 755 "$APP"
   install -d -m 750 -g "$SVC_USER" "$(dirname "$ENV_FILE")"
 }
@@ -140,15 +148,17 @@ write_env_file() {
 
 install_service() {
   say "Installing systemd service"
-  install -m 644 "$STAGE/deploy/priority-watch.service" /etc/systemd/system/priority-watch.service
+  sed -e "s|__NAME__|$NAME|g" -e "s|__USER__|$SVC_USER|g" -e "s|__APP__|$APP|g" -e "s|__DATA__|$DATA|g" -e "s|__ENV_FILE__|$ENV_FILE|g" \
+    "$STAGE/deploy/priority-watch.service" > "$UNIT_DIR/$NAME.service"
+  chmod 644 "$UNIT_DIR/$NAME.service"
   systemctl daemon-reload
-  systemctl enable priority-watch >/dev/null
+  systemctl enable "$NAME" >/dev/null
 }
 
 install_nginx() {
   say "Configuring Nginx for $DOMAIN (app on 127.0.0.1:$PORT)"
-  sed -e "s|__DOMAIN__|$DOMAIN|g" -e "s|__BACKEND__|127.0.0.1:$PORT|g" "$STAGE/deploy/nginx.conf" > /etc/nginx/sites-available/priority-watch
-  ln -sf /etc/nginx/sites-available/priority-watch /etc/nginx/sites-enabled/priority-watch
+  sed -e "s|__DOMAIN__|$DOMAIN|g" -e "s|__BACKEND__|127.0.0.1:$PORT|g" "$STAGE/deploy/nginx.conf" > "/etc/nginx/sites-available/$NAME"
+  ln -sf "/etc/nginx/sites-available/$NAME" "/etc/nginx/sites-enabled/$NAME"
   rm -f /etc/nginx/sites-enabled/default
   nginx -t
   systemctl reload nginx
@@ -186,11 +196,11 @@ configure_firewall() {
 
 install_backup() {
   install -m 755 "$STAGE/deploy/backup.sh" "$APP/backup.sh"
-  cat > /etc/cron.d/priority-watch <<CRON
+  cat > "$CRON_DIR/$NAME" <<CRON
 # Hourly consistent backup of the PocketBase database (kept 14 days). Output goes to the journal.
-0 * * * * $SVC_USER $APP/backup.sh 2>&1 | logger -t priority-watch-backup
+0 * * * * $SVC_USER DATA=$DATA/pb_data OUT=$BACKUP_DIR $APP/backup.sh 2>&1 | logger -t $NAME-backup
 CRON
-  chmod 644 /etc/cron.d/priority-watch
+  chmod 644 "$CRON_DIR/$NAME"
 }
 
 healthy() {
@@ -208,7 +218,7 @@ do_release() {
   [ -x "$APP/pocketbase" ] || die "PocketBase is not installed. Run:  server.sh setup ..."
   for d in dist pb_hooks pb_migrations; do [ -d "$STAGE/$d" ] || die "missing $STAGE/$d in the staged release"; done
 
-  [ -x "$APP/backup.sh" ] && runuser -u "$SVC_USER" -- "$APP/backup.sh" || warn "skipping pre-release backup"
+  [ -x "$APP/backup.sh" ] && runuser -u "$SVC_USER" -- env DATA="$DATA/pb_data" OUT="$BACKUP_DIR" "$APP/backup.sh" || warn "skipping pre-release backup"
 
   rm -rf "$APP/.prev"; mkdir -p "$APP/.prev"
   for d in dist pb_hooks pb_migrations; do
@@ -217,19 +227,19 @@ do_release() {
   done
   chown -R root:root "$APP/dist" "$APP/pb_hooks" "$APP/pb_migrations"
 
-  systemctl restart priority-watch
+  systemctl restart "$NAME"
   if healthy; then
     say "Release is up ($(date -u +%FT%TZ))"
     return 0
   fi
 
   warn "New release did not become healthy. Rolling back."
-  journalctl -u priority-watch -n 30 --no-pager || true
+  journalctl -u "$NAME" -n 30 --no-pager || true
   for d in dist pb_hooks pb_migrations; do
     if [ -d "$APP/.prev/$d" ]; then rm -rf "${APP:?}/$d"; mv "$APP/.prev/$d" "$APP/$d"; fi
   done
-  systemctl restart priority-watch
-  healthy && warn "Rolled back to the previous code. Database migrations that already ran were NOT undone; restore a backup if the schema changed." || warn "Still unhealthy after rollback. Check: journalctl -u priority-watch"
+  systemctl restart "$NAME"
+  healthy && warn "Rolled back to the previous code. Database migrations that already ran were NOT undone; restore a backup if the schema changed." || warn "Still unhealthy after rollback. Check: journalctl -u $NAME"
   return 1
 }
 
@@ -320,11 +330,11 @@ PROXY
   cat <<NEXT
 
 Next:
-  1. Edit $ENV_FILE (Textbelt, SMTP, Slack, Allmon3, WordPress, Anthropic), then:  systemctl restart priority-watch
+  1. Edit $ENV_FILE (Textbelt, SMTP, Slack, Allmon3, WordPress, Anthropic), then:  systemctl restart $NAME
   2. Create the first app admin (from your laptop):  PB_URL=https://$DOMAIN node scripts/create-admin.mjs you@example.org "Name" CALL
      or import the previous app's data:  node scripts/import-base44.mjs <export-folder> --dry-run
   3. Harden SSH once your key login works: PasswordAuthentication no, PermitRootLogin no in /etc/ssh/sshd_config.d/
-  4. Copy /var/backups/priority-watch off this machine regularly.
+  4. Copy $BACKUP_DIR off this machine regularly.
 NEXT
 }
 

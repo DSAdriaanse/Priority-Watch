@@ -80,7 +80,28 @@ The app uses a single SQLite database, so run exactly one app server behind the 
 
 ### Second instance on the same server
 
-A different port is not enough on its own to run a second copy on the same server. The service name, install folders, data folder, Nginx site, service user and backup job are all shared at the moment, so a second install would overwrite the first. Making those configurable per instance (a `--name` option) is a separate change.
+Give the second copy its own name. Everything is named after it, so nothing is shared with the first install except the Node install, Nginx and the firewall:
+
+```bash
+bash bootstrap.sh --name blog --domain blog.apps.swcrs.org --email you@example.org
+```
+
+| Thing | Default instance (`priority-watch`) | `--name blog` |
+|---|---|---|
+| Service | `priority-watch` | `blog` |
+| Code, git clone | `/opt/priority-watch`, `/opt/priority-watch-src` | `/opt/blog`, `/opt/blog-src` |
+| Data, backups | `/var/lib/priority-watch`, `/var/backups/priority-watch` | `/var/lib/blog`, `/var/backups/blog` |
+| Secrets | `/etc/priority-watch/env` | `/etc/blog/env` |
+| Service user | `pwatch` | `blog` |
+| Nginx site, backup job | `priority-watch` | `blog` |
+| Update command | `priority-watch-update` | `blog-update` |
+| Deploy key | `/root/.ssh/priority-watch-deploy` | `/root/.ssh/blog-deploy` (own SSH host alias, so each repo can have its own key) |
+
+The name is 1 to 24 characters: lowercase letters, digits and dashes, starting with a letter. The installer suggests a free port for each instance, so two copies never collide. Without `--name`, running the installer again updates the existing install in place; the plan it prints says so.
+
+The same scripts can install another app, as long as its repo has the same layout (`web/`, `backend/`, `deploy/`, `.env.example`). Pass `--repo` for that app's repository.
+
+Installs made before this option existed keep working unchanged: the default name maps to the original paths and the `pwatch` user.
 
 ## Manual install (what the script does)
 
@@ -101,7 +122,8 @@ sudo install -m 755 deploy/backup.sh /opt/priority-watch/backup.sh
 sudo cp .env.example /etc/priority-watch/env   # then edit it, fill in the secrets (setup also generates INBOUND_WEBHOOK_SECRET)
 sudo chmod 640 /etc/priority-watch/env; sudo chown root:pwatch /etc/priority-watch/env
 
-sudo cp deploy/priority-watch.service /etc/systemd/system/   # reads PW_PORT from the env file (set PW_PORT=8090 and PW_LISTEN=127.0.0.1)
+sudo sed -e 's|__NAME__|priority-watch|g; s|__USER__|pwatch|g; s|__APP__|/opt/priority-watch|g; s|__DATA__|/var/lib/priority-watch|g; s|__ENV_FILE__|/etc/priority-watch/env|g' \
+  deploy/priority-watch.service | sudo tee /etc/systemd/system/priority-watch.service >/dev/null   # reads PW_PORT and PW_LISTEN from the env file (set PW_PORT=8090 and PW_LISTEN=127.0.0.1)
 sudo sed 's/__DOMAIN__/priority.apps.swcrs.org/; s/__BACKEND__/127.0.0.1:8090/' deploy/nginx.conf | sudo tee /etc/nginx/sites-available/priority-watch >/dev/null
 sudo ln -s /etc/nginx/sites-available/priority-watch /etc/nginx/sites-enabled/
 sudo certbot --nginx -d priority.apps.swcrs.org     # gets the certificate (edit server_name first if needed)
@@ -153,7 +175,7 @@ Rotate the old secret: the old export contains it in clear text.
 `deploy/backup.sh` takes a consistent SQLite backup and prunes after 14 days. Schedule it:
 
 ```
-0 * * * *  pwatch  /opt/priority-watch/backup.sh
+0 * * * *  pwatch  DATA=/var/lib/priority-watch/pb_data OUT=/var/backups/priority-watch /opt/priority-watch/backup.sh
 ```
 
 Copy `/var/backups/priority-watch` off the machine too (rsync, rclone, restic). Restore: stop the service, unpack the tarball into `pb_data`, start.

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Consistent online backup of the PocketBase SQLite files. Run from cron/systemd timer as pwatch.
-#   0 * * * *  /opt/priority-watch/backup.sh
+# Consistent online backup of the PocketBase SQLite files. Run from cron/systemd timer as the service user.
+#   0 * * * *  DATA=/var/lib/<name>/pb_data OUT=/var/backups/<name> /opt/<name>/backup.sh
+# server.sh writes that cron line for each instance; the defaults below are for the default instance.
 set -euo pipefail
 DATA=${DATA:-/var/lib/priority-watch/pb_data}
 OUT=${OUT:-/var/backups/priority-watch}
