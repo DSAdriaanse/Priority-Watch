@@ -1,11 +1,20 @@
 // Shared helpers for hook handlers. Load inside handlers with:
 //   const u = require(`${__hooks}/lib/util.js`)
+//
+// Why require() inside each handler instead of once at the top of a file:
+// PocketBase runs every route handler in its own isolated JavaScript context,
+// so top-level variables and imports from the file are NOT visible inside a
+// handler. Loading the helper inside the handler is what makes it available.
 
+// Read a server environment variable (set in /etc/priority-watch/env). Returns
+// the fallback, or an empty string, when it is missing or blank.
 function env(name, fallback) {
   const v = $os.getenv(name);
   return v ? v : (fallback === undefined ? "" : fallback);
 }
 
+// Clamp any value to a string of at most max characters. Used on every piece of
+// text that arrives from outside, so nothing oversized reaches the database.
 function trunc(v, max) {
   const s = v === undefined || v === null ? "" : String(v);
   return s.length > max ? s.slice(0, max) : s;
@@ -17,6 +26,7 @@ function settings() {
   return all.length ? all[0] : null;
 }
 
+// One text field from the settings record, or "" if there is none.
 function setting(rec, name) {
   return rec ? (rec.getString(name) || "") : "";
 }
@@ -37,6 +47,7 @@ function requireRole(e, roles) {
   return a;
 }
 
+// Friendly name for logs: the user's name, else their email, else "Operator".
 function displayName(user) {
   return user.getString("name") || user.email() || "Operator";
 }

@@ -32,6 +32,10 @@ function SecretStatus({ ok, name }) {
   );
 }
 
+// SETTINGS (/settings, admin only): non-secret configuration (alert message template,
+// Slack channel, WordPress address, Allmon3 address) stored in the database, the
+// DTMF command list, and the Excel backup. Secrets such as API keys are NOT here:
+// they live in /etc/priority-watch/env, and this page only shows whether each is set.
 export default function Settings() {
   const { toast } = useToast();
   const [settings, setSettings] = useState(null);

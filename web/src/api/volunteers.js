@@ -5,12 +5,16 @@ import { pb } from "./pb";
 const users = () => pb.collection("users");
 const contacts = () => pb.collection("volunteer_contacts");
 
+// A throwaway password for new accounts. Nobody ever sees it; the person is emailed
+// a link to choose their own.
 const randomPassword = () => {
   const bytes = new Uint8Array(24);
   crypto.getRandomValues(bytes);
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 };
 
+// Joins each login account (users) with its private contact row (volunteer_contacts).
+// Non-admins cannot read volunteer_contacts, which is how phone numbers stay private.
 export async function listVolunteers() {
   const [people, cons] = await Promise.all([users().getFullList({ sort: "name" }), contacts().getFullList()]);
   const byUser = new Map(cons.map((c) => [c.user, c]));
@@ -49,6 +53,8 @@ export async function saveVolunteer(v) {
     return { id: v.id, resetEmailSent: false };
   }
 
+  // New person: create the login first, then the contact row. If the contact row
+  // fails, remove the login again so we never leave a half-made account behind.
   const password = v.password || randomPassword();
   const created = await users().create({
     ...profile,

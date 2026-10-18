@@ -1,6 +1,7 @@
 import { useAuth } from "@/lib/AuthContext";
 import AccessDenied from "@/components/AccessDenied";
 
+// Screen guard: shows its children only to the given role, otherwise "Access denied".
 export default function RequireRole({ role, children }) {
   const { accessLevel, isLoadingAuth, isLoadingProfile } = useAuth();
 

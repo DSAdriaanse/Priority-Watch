@@ -14,6 +14,8 @@ const statusStyles = {
   low: "bg-gray-500/15 text-gray-300 border-gray-500/40",
 };
 
+// Small coloured pill for a status (active, resolved, online ...) or a priority
+// (critical, high ...). Unknown values fall back to the grey "low" style.
 export default function StatusBadge({ status }) {
   const cls = statusStyles[status] || statusStyles.low;
   return (

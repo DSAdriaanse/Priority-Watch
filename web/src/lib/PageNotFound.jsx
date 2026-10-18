@@ -3,6 +3,7 @@ import { auth } from '@/api';
 import { useQuery } from '@tanstack/react-query';
 
 
+// Shown for any web address the app does not recognise.
 export default function PageNotFound({}) {
     const location = useLocation();
     const pageName = location.pathname.substring(1);

@@ -11,6 +11,9 @@ const NONE = "__none__";
 
 const isIncomplete = (q) => !q.question?.trim() || !(q.answers || []).some((a) => a.label?.trim());
 
+// The editor for a script's triage questions (used on the Triage flow tab).
+// `value` is the list of questions and `onChange` receives the new list on every edit.
+// cleanTriageFlow() at the bottom removes blank rows before saving.
 export default function TriageFlowBuilder({ value, onChange }) {
   const flow = Array.isArray(value) ? value : [];
   const [open, setOpen] = useState(() => new Set(flow.length <= 3 ? flow.map((_, i) => i) : []));

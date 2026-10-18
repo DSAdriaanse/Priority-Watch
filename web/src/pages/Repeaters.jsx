@@ -14,6 +14,10 @@ const emptyRepeater = { node_number: "", name: "", callsign: "", location: "", s
 const agencyTypes = ["911", "police", "fire", "emt", "power", "gas", "other"];
 const agencyLabels = { "911": "911", police: "Police", fire: "Fire", emt: "EMT", power: "Power", gas: "Gas", other: "Other" };
 
+// REPEATERS (/repeaters, admin only): add, edit and delete repeaters and the
+// emergency contacts (911, police, fire ...) shown to operators during an incident.
+// Each repeater also holds its node number for radio control and the two webhook
+// addresses used to link and delink it.
 export default function Repeaters() {
   const { toast } = useToast();
   const [repeaters, setRepeaters] = useState([]);
