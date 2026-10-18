@@ -32,7 +32,7 @@ migrate((app) => {
   const PRIORITIES = ["critical", "high", "medium", "low"];
   const DTMF_PATTERN = "^[0-9A-D*#]{1,24}$";
 
-  // Created and updated timestamps, named to match the original Base44 fields.
+  // Created and updated timestamps, named created_date and updated_date (the users collection keeps PocketBase's own created and updated).
   const stamps = () => [
     { type: "autodate", name: "created_date", onCreate: true, onUpdate: false },
     { type: "autodate", name: "updated_date", onCreate: true, onUpdate: true },
