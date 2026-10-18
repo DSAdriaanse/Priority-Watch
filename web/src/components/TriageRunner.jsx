@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { entities, functions, auth } from "@/api";
+import { entities, auth } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, RotateCcw } from "lucide-react";
 import StatusBadge from "@/components/StatusBadge";

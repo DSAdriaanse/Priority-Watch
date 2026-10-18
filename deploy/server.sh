@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs ON THE SERVER (normally started by deploy/push.sh).
+# Runs ON THE SERVER. Started by priority-watch-update (deploy/update.sh), which stages the files first.
 #
 #   server.sh setup --domain priority.example.org --email you@example.org [--superuser-email you@example.org]
 #       One-time (and safe to re-run) server preparation + first release.

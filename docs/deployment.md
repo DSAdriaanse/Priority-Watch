@@ -30,23 +30,14 @@ priority-watch-update                  # pull, build, back up, restart, health c
 priority-watch-update --branch main    # switch branch
 ```
 
-A tiny server (under 2 GB RAM) may struggle with the front-end build. Add a swap file or build elsewhere and use `deploy/push.sh` (below).
-
-### Alternative: push from your own machine
-
-`deploy/push.sh` builds locally and uploads over ssh, so the server needs no Node or repo access:
-
-```bash
-deploy/push.sh root@your-server --setup --domain priority.apps.swcrs.org --email you@example.org --superuser-email you@example.org
-deploy/push.sh root@your-server            # later updates
-```
+A tiny server (under 2 GB RAM) may struggle with the front-end build. Add a swap file before running an update.
 
 Everything is installed under:
 
 | Path | Contents |
 |---|---|
 | `/opt/priority-watch` | `pocketbase` binary, `pb_hooks`, `pb_migrations`, `dist`, `backup.sh` (previous release kept in `.prev`) |
-| `/opt/priority-watch-src` | git clone (server-side install only) |
+| `/opt/priority-watch-src` | git clone that `priority-watch-update` pulls from |
 | `/var/lib/priority-watch/pb_data` | the database and uploads (back this up) |
 | `/etc/priority-watch/env` | secrets, mode 640 (see `.env.example`); edit, then `systemctl restart priority-watch` |
 
@@ -131,7 +122,7 @@ Copy `/var/backups/priority-watch` off the machine too (rsync, rclone, restic). 
 
 ## Upgrades
 
-App: `deploy/push.sh root@your-server`. Rolling back restores the previous code only; migrations that already ran are not undone, so restore a backup if the schema changed.
+App: run `priority-watch-update` on the server. Rolling back restores the previous code only; migrations that already ran are not undone, so restore a backup if the schema changed.
 PocketBase itself: back up, then re-run `setup` with `PB_VERSION=x.y.z` set in the server environment (or replace the binary by hand), and restart. Read the release notes first; it is pre-1.0.
 
 ## Troubleshooting

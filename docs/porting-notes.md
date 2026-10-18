@@ -1,6 +1,6 @@
 # Porting notes (Base44 to PocketBase)
 
-Findings from reviewing `legacy/base44-original`.
+Findings from reviewing the original Base44 app. The original source was removed from the repo; it is still in git history (`git show 5df4d41:legacy/base44-original/<path>`).
 
 ## Entities to collections
 
@@ -14,10 +14,10 @@ Repeater, Incident, IncidentUpdate, GuidanceScript, EmergencyContact, DtmfComman
 | notifyVolunteers | route | operator or admin |
 | resolveIncident | route | operator or admin |
 | controlRepeater | route | operator or admin |
-| runDtmf | route | operator or admin (already enforced in legacy) |
+| runDtmf | route | operator or admin (already enforced in the original) |
 | exportWorkbook / importWorkbook | admin routes, direct file upload (no fetch of caller-supplied URLs) | admin |
 
-## Known problems in the legacy app, fixed in the rebuild
+## Known problems in the original app, fixed in the rebuild
 
 - Only runDtmf checked the caller's role; other functions accepted any logged-in user, and signup was open.
 - Settings held third-party secrets in a table the browser could load. Secrets now come from environment variables.
