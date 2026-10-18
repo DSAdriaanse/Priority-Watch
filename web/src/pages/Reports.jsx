@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { entities, functions, auth } from "@/api";
+import { entities } from "@/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,9 @@ import { INCIDENT_CATEGORIES, formatCategory } from "@/lib/incidentTaxonomy";
 
 const priorityLevels = ["critical", "high", "medium", "low"];
 
+// REPORTS (/reports): search and filter the archive of resolved incidents, open any
+// one to read its summary and log. Admins can delete a report.
+// Filtering happens in the browser, on the 200 most recent incident records.
 export default function Reports() {
   const { isAdmin } = useAuth();
   const { toast } = useToast();

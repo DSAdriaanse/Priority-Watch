@@ -9,7 +9,7 @@ Group=pwatch
 WorkingDirectory=/opt/priority-watch
 EnvironmentFile=/etc/priority-watch/env
 ExecStart=/opt/priority-watch/pocketbase serve \
-  --http 127.0.0.1:8090 \
+  --http ${PW_LISTEN}:${PW_PORT} \
   --dir /var/lib/priority-watch/pb_data \
   --migrationsDir /opt/priority-watch/pb_migrations \
   --hooksDir /opt/priority-watch/pb_hooks \

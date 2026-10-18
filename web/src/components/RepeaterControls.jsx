@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { entities, functions, auth } from "@/api";
+import { entities, functions } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -15,6 +15,9 @@ import {
 import { Loader2, Send } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
+// Used on the Repeater Control screen and inside an incident.
+// Sends only a repeater id and a command id; the server looks up the node number
+// and the digits itself. Commands marked confirm_required ask "are you sure?" first.
 // Reusable DTMF control panel. `repeaters` is the list of repeaters to offer;
 // only those with a node number are selectable. Calls the runDtmf backend function.
 export default function RepeaterControls({ repeaters }) {

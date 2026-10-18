@@ -3,6 +3,12 @@
 // Send a configured DTMF command to a repeater's AllStarLink node via Allmon3.
 //   POST /api/pw/dtmf/run   { repeaterId, commandId }
 // The client never sends a raw DTMF string or node number.
+//
+// Only a repeater id and a command id come from the browser. The server looks up
+// the node number and the DTMF digits itself, so a signed-in user cannot make it
+// send arbitrary tones. Digits are checked against 0-9, A-D, * and # only.
+// Talking to Allmon3 takes two web requests: log in (get a cookie), then send
+// the command "rpt fun <node> <digits>". Every attempt is written to dtmf_logs.
 
 routerAdd("POST", "/api/pw/dtmf/run", (e) => {
   const u = require(`${__hooks}/lib/util.js`);
@@ -32,6 +38,7 @@ routerAdd("POST", "/api/pw/dtmf/run", (e) => {
     throw new ApiError(500, "Allmon3 is not configured (base URL, username, or ALLMON_PASS missing).", {});
   }
 
+  // Allmon3 expects classic form-encoded bodies, not JSON.
   const form = (o) => Object.keys(o).map((k) => encodeURIComponent(k) + "=" + encodeURIComponent(o[k])).join("&");
 
   let output = "";
@@ -71,6 +78,7 @@ routerAdd("POST", "/api/pw/dtmf/run", (e) => {
           if (j && j.SUCCESS !== undefined && j.SUCCESS !== null) {
             ok = true;
             const val = j.SUCCESS;
+            // Allmon3 returns the command output base64-encoded.
             const b64 = typeof val === "string" ? val : ((val && (val.output || val.data || val.text)) || "");
             try { output = Buffer.from(String(b64), "base64").toString("utf8"); } catch (_) { output = String(b64 || ""); }
             if (!output) output = "Command accepted";

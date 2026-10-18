@@ -15,11 +15,10 @@ This repo is a rebuild of the app that previously ran on Base44, moved to a self
 
 ```
 backend/    PocketBase migrations (schema and access rules) and hooks (webhook, notify, resolve, DTMF, link)
-web/        React app. src/api is the only code that talks to the backend; src/features is organized by feature
-deploy/     Nginx, systemd, backup scripts and install notes
-scripts/    One-time Base44 data import and seed data
-docs/       Data model, endpoint reference, runbook
-legacy/     Read-only copy of the original Base44 code, kept as the porting reference
+web/        React app. src/api is the only code that talks to the backend
+deploy/     Server install and update scripts (bootstrap.sh, update.sh, server.sh), Nginx and systemd files, backup script
+scripts/    One-time Base44 data import and create-admin
+docs/       Code map, endpoint reference, deployment runbook, porting notes
 ```
 
 ## Principles
@@ -34,6 +33,7 @@ legacy/     Read-only copy of the original Base44 code, kept as the porting refe
 
 Feature-complete port of the Base44 app: schema and rules, API hooks (19 end-to-end tests in `backend/test`), the React front end, a browser smoke test (`web/e2e/smoke.mjs`), a Base44 CSV importer, and Debian deploy files.
 
+- Reading the code (start here): `docs/code-map.md`
 - Install and run: `docs/deployment.md`
 - Custom endpoints: `docs/endpoints.md`
 - What changed from Base44 and why: `docs/porting-notes.md`

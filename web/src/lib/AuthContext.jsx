@@ -1,6 +1,8 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from "react";
 import { auth } from "@/api";
 
+// Makes the signed-in user available to every screen via useAuth().
+// On load it asks the server to confirm the stored login (auth.refresh).
 const AuthContext = createContext();
 
 // Roles come straight from the signed-in user record (users.role):

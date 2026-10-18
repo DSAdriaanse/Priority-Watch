@@ -1,4 +1,6 @@
 // CAP-aligned incident taxonomy shared across the app.
+// Must match the category list in backend/pb_migrations/1760000000_schema.js.
+// Adding a category means changing both, plus a new migration.
 export const INCIDENT_CATEGORIES = [
   "medical",
   "fire",

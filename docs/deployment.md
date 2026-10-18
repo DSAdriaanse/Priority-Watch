@@ -20,6 +20,18 @@ ssh root@your-server
 bash bootstrap.sh --domain priority.apps.swcrs.org --email you@example.org --superuser-email you@example.org
 ```
 
+Run it with no options and it asks what it needs, shows a plan, and waits for a yes:
+
+1. Public hostname (default: the one from a previous install).
+2. How people reach the app: **1** Nginx and a Let's Encrypt certificate on this server, or **2** an external reverse proxy (see below).
+3. Local mode only: email for certificate notices.
+4. Optional PocketBase admin email.
+5. Local port (suggests the first free one from 8090 up; 1024 to 65535, refuses one in use).
+6. Proxy mode only: the address to listen on and which proxy addresses may connect.
+7. Git branch.
+
+Anything passed as an option is not asked again: `--domain --mode local|proxy --email --superuser-email --port --listen --proxy-ip --branch --yes --dry-run`. `--dry-run` asks and prints the plan without changing anything. `--yes` (or no terminal) never asks; it uses the options and defaults, and stops with a clear message if something required is missing.
+
 The script installs Node 22, then shows a public key and waits while you add it to the repo (GitHub, Settings, Deploy keys, leave write access unchecked). It then clones the repo, builds it, and sets up PocketBase, systemd, Nginx with TLS, the firewall and hourly backups.
 It prints the PocketBase superuser login and a generated webhook secret once. Save them.
 
@@ -30,28 +42,45 @@ priority-watch-update                  # pull, build, back up, restart, health c
 priority-watch-update --branch main    # switch branch
 ```
 
-A tiny server (under 2 GB RAM) may struggle with the front-end build. Add a swap file or build elsewhere and use `deploy/push.sh` (below).
-
-### Alternative: push from your own machine
-
-`deploy/push.sh` builds locally and uploads over ssh, so the server needs no Node or repo access:
-
-```bash
-deploy/push.sh root@your-server --setup --domain priority.apps.swcrs.org --email you@example.org --superuser-email you@example.org
-deploy/push.sh root@your-server            # later updates
-```
+A tiny server (under 2 GB RAM) may struggle with the front-end build. Add a swap file before running an update.
 
 Everything is installed under:
 
 | Path | Contents |
 |---|---|
 | `/opt/priority-watch` | `pocketbase` binary, `pb_hooks`, `pb_migrations`, `dist`, `backup.sh` (previous release kept in `.prev`) |
-| `/opt/priority-watch-src` | git clone (server-side install only) |
+| `/opt/priority-watch-src` | git clone that `priority-watch-update` pulls from |
 | `/var/lib/priority-watch/pb_data` | the database and uploads (back this up) |
 | `/etc/priority-watch/env` | secrets, mode 640 (see `.env.example`); edit, then `systemctl restart priority-watch` |
 
 The setup step is safe to re-run (for example after fixing DNS if certbot failed). It does not touch your env file or data.
 It does not change SSH settings, so disable password and root login yourself once key login works.
+
+### The port
+
+The chosen port is saved as `PW_PORT` in `/etc/priority-watch/env`. The systemd unit reads it from there, and setup writes it into the Nginx site. To change it later, re-run setup with the new port (it keeps your secrets and data):
+
+```bash
+priority-watch-update --setup --domain priority.apps.swcrs.org --email you@example.org --port 8095   # add --mode proxy --listen ... --proxy-ip ... for proxy mode
+```
+
+Do not just edit `PW_PORT` by hand; Nginx would still point at the old port. Servers installed before this option existed keep running on 8090, and the next update records that in the env file.
+
+### External reverse proxy (several servers)
+
+Pick mode 2 (or `--mode proxy`) when Nginx and TLS live on another machine. Setup then does not install Nginx or certbot. The app listens on the address you give (for example this server's LAN address), and ufw allows only your proxy addresses to reach the app port (`--proxy-ip 10.0.0.5,10.1.0.0/24`, or `none` to manage the firewall yourself; ports 80 and 443 stay closed).
+
+```bash
+bash bootstrap.sh --domain priority.apps.swcrs.org --mode proxy --listen 10.0.0.9 --proxy-ip 10.0.0.5 --port 8090
+```
+
+At the end setup prints a ready-to-paste Nginx site and saves it as `/etc/priority-watch/nginx-proxy.conf`. Copy it to the proxy, get the certificate there, and reload Nginx. Keep `proxy_buffering off` and the long read timeout on `/api/realtime`, or the dashboard stops updating live.
+
+The app uses a single SQLite database, so run exactly one app server behind the proxy. The proxy can be shared, but the app cannot be load balanced.
+
+### Second instance on the same server
+
+A different port is not enough on its own to run a second copy on the same server. The service name, install folders, data folder, Nginx site, service user and backup job are all shared at the moment, so a second install would overwrite the first. Making those configurable per instance (a `--name` option) is a separate change.
 
 ## Manual install (what the script does)
 
@@ -72,8 +101,8 @@ sudo install -m 755 deploy/backup.sh /opt/priority-watch/backup.sh
 sudo cp .env.example /etc/priority-watch/env   # then edit it, fill in the secrets (setup also generates INBOUND_WEBHOOK_SECRET)
 sudo chmod 640 /etc/priority-watch/env; sudo chown root:pwatch /etc/priority-watch/env
 
-sudo cp deploy/priority-watch.service /etc/systemd/system/
-sudo cp deploy/nginx.conf /etc/nginx/sites-available/priority-watch
+sudo cp deploy/priority-watch.service /etc/systemd/system/   # reads PW_PORT from the env file (set PW_PORT=8090 and PW_LISTEN=127.0.0.1)
+sudo sed 's/__DOMAIN__/priority.apps.swcrs.org/; s/__BACKEND__/127.0.0.1:8090/' deploy/nginx.conf | sudo tee /etc/nginx/sites-available/priority-watch >/dev/null
 sudo ln -s /etc/nginx/sites-available/priority-watch /etc/nginx/sites-enabled/
 sudo certbot --nginx -d priority.apps.swcrs.org     # gets the certificate (edit server_name first if needed)
 sudo systemctl daemon-reload && sudo systemctl enable --now priority-watch
@@ -131,11 +160,12 @@ Copy `/var/backups/priority-watch` off the machine too (rsync, rclone, restic). 
 
 ## Upgrades
 
-App: `deploy/push.sh root@your-server`. Rolling back restores the previous code only; migrations that already ran are not undone, so restore a backup if the schema changed.
+App: run `priority-watch-update` on the server. Rolling back restores the previous code only; migrations that already ran are not undone, so restore a backup if the schema changed.
 PocketBase itself: back up, then re-run `setup` with `PB_VERSION=x.y.z` set in the server environment (or replace the binary by hand), and restart. Read the release notes first; it is pre-1.0.
 
 ## Troubleshooting
 
+- App will not start after choosing a port: another program may be using it (`ss -ltnp | grep :PORT`). Re-run setup with a free `--port`.
 - Dashboard does not update live: Nginx is buffering `/api/realtime`. Use the supplied config.
 - Alerts arrive but no SMS: check Settings status badges (Textbelt key present?) and `journalctl -u priority-watch`.
 - 429 from the webhook: more than `WEBHOOK_RATE_LIMIT` requests/minute from one IP.

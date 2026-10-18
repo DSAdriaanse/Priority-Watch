@@ -1,9 +1,15 @@
 // Notification helpers: SMS (Textbelt), email (PocketBase SMTP), team lookup.
+//
+// Every sender returns a result object ({ ok, error, ... }) instead of throwing,
+// so the caller can try everyone on the team and report each success or failure.
+// Used by hooks/incidents.pb.js (manual notify) and hooks/webhook.pb.js (inbound alert).
 const util = require(`${__hooks}/lib/util.js`);
 
 const DEFAULT_TEMPLATE =
   "GMRS PRIORITY WATCH ALERT\nRepeater: {repeater}\nType: {alert_type}\nDetails: {nature}\nCheck the Priority Watch dashboard immediately.";
 
+// Fill the message template. The template (editable on the Settings page) may
+// contain {repeater}, {alert_type} and {nature}; missing values get a readable default.
 function buildAlertMessage(template, repeaterName, alertType, nature) {
   const tmpl = template && template.trim() ? template : DEFAULT_TEMPLATE;
   return tmpl

@@ -20,6 +20,8 @@ function hashIndex(str, mod) {
   return h % mod;
 }
 
+// Initials in a coloured circle plus the name of whoever owns an incident, or "Unassigned".
+// The colour comes from the name, so one person always gets the same colour.
 export default function OwnerBadge({ name, className = "" }) {
   if (!name) {
     return (

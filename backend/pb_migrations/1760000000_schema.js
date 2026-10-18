@@ -9,9 +9,21 @@
 //
 // Every rule below is enforced by the server. The UI hides things for
 // convenience only.
+//
+// HOW TO READ THIS FILE
+//   A migration runs once, the first time PocketBase starts on a new database
+//   (the second function at the bottom undoes it). Each block creates one table,
+//   called a "collection". For each collection:
+//     listRule / viewRule      who may read it
+//     createRule / updateRule / deleteRule   who may change it
+//   A rule is a filter expression. null means "nobody through the API" (only
+//   server code in pb_hooks can do it); "" would mean "anyone, even signed out".
+//   To change the schema later, add a NEW migration file with a later timestamp
+//   in its name. Do not edit this one on a database that already ran it.
 
 migrate((app) => {
-  // Rule building blocks.
+  // Rule building blocks, reused below. AUTHED = any active signed-in user,
+  // OPS = active admin or operator, ADMIN = active admin only.
   const AUTHED = `@request.auth.id != "" && @request.auth.active = true`;
   const OPS = `${AUTHED} && (@request.auth.role = "admin" || @request.auth.role = "operator")`;
   const ADMIN = `${AUTHED} && @request.auth.role = "admin"`;
@@ -20,6 +32,7 @@ migrate((app) => {
   const PRIORITIES = ["critical", "high", "medium", "low"];
   const DTMF_PATTERN = "^[0-9A-D*#]{1,24}$";
 
+  // Created and updated timestamps, named to match the original Base44 fields.
   const stamps = () => [
     { type: "autodate", name: "created_date", onCreate: true, onUpdate: false },
     { type: "autodate", name: "updated_date", onCreate: true, onUpdate: true },

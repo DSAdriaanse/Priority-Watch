@@ -9,6 +9,8 @@ import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { safeReturnTo } from "@/lib/authReturnTo";
 
+// SIGN-IN (/login). After success it reloads the page at the address the person was
+// trying to reach (returnTo, validated in lib/authReturnTo.js so it cannot send people to another site).
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { entities, functions, auth } from "@/api";
+import { entities } from "@/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioTower } from "lucide-react";
 import RepeaterControls from "@/components/RepeaterControls";
 
+// REPEATER CONTROL (/dtmf, admin or operator): pick a repeater and a saved command and send it.
+// The real work is in components/RepeaterControls.jsx.
 export default function DtmfControl() {
   const [repeaters, setRepeaters] = useState([]);
   const [loading, setLoading] = useState(true);

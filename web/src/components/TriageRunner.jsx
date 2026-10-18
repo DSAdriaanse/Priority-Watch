@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { entities, functions, auth } from "@/api";
+import { entities, auth } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, RotateCcw } from "lucide-react";
 import StatusBadge from "@/components/StatusBadge";
@@ -8,6 +8,11 @@ import { useToast } from "@/components/ui/use-toast";
 const RANK = { critical: 4, high: 3, medium: 2, low: 1 };
 const higher = (a, b) => ((RANK[a] || 0) >= (RANK[b] || 0) ? a : b);
 
+// Walks an operator through a script's triage questions one at a time.
+// The result priority is the highest of the script's starting priority and every
+// chosen answer's priority; chosen answers also add steps. An answer marked "skip
+// rest" ends the questions early. When given an `incident`, "Apply to Incident" saves
+// the priority and logs the answers. Without one (the editor preview) it is read-only.
 export default function TriageRunner({ guidance, incident, onApplied }) {
   const { toast } = useToast();
   const flow = Array.isArray(guidance?.triage_flow)
@@ -19,7 +24,7 @@ export default function TriageRunner({ guidance, incident, onApplied }) {
   const [applying, setApplying] = useState(false);
 
   if (flow.length === 0) {
-    return <div className="text-sm text-gray-500">This guidance script has no triage flow configured.</div>;
+    return <div className="text-sm text-gray-500">{incident ? "This guidance script has no triage flow configured." : "Add a question with at least one answer to try it out here."}</div>;
   }
 
   const pick = (answer) => {
@@ -118,9 +123,11 @@ export default function TriageRunner({ guidance, incident, onApplied }) {
         ))}
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button onClick={apply} disabled={applying} className="bg-emerald-700 hover:bg-emerald-800 text-white">
-          {applying ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Applying…</> : <><CheckCircle2 className="w-4 h-4 mr-2" /> Apply to Incident</>}
-        </Button>
+        {incident && (
+          <Button onClick={apply} disabled={applying} className="bg-emerald-700 hover:bg-emerald-800 text-white">
+            {applying ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Applying…</> : <><CheckCircle2 className="w-4 h-4 mr-2" /> Apply to Incident</>}
+          </Button>
+        )}
         <Button variant="outline" onClick={reset} className="bg-gray-900 border-gray-700 text-gray-200">
           <RotateCcw className="w-3.5 h-3.5 mr-1" /> Redo
         </Button>

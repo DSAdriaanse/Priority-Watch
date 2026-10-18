@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Lock, Loader2, AlertTriangle } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 
+// RESET PASSWORD (/reset-password?token=...): the page the emailed link opens.
+// Also used when an admin creates your account and you choose your first password.
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
   const resetToken = searchParams.get("token");

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { entities, functions, auth } from "@/api";
+import { entities } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -16,6 +16,10 @@ import { INCIDENT_CATEGORIES, formatCategory } from "@/lib/incidentTaxonomy";
 
 const priorityLevels = ["critical", "high", "medium", "low"];
 
+// HOME SCREEN (/): active incidents, headline numbers, recent resolved incidents,
+// and the "Log Incident" form for reporting one by hand.
+// Everyone signed in can see it. It updates itself: entities.*.subscribe() pushes
+// changes (including incidents created by the inbound webhook) without a reload.
 export default function Dashboard() {
   const [incidents, setIncidents] = useState([]);
   const [repeaters, setRepeaters] = useState([]);
@@ -44,6 +48,7 @@ export default function Dashboard() {
   useEffect(() => {load();}, []);
 
   // Real-time: refresh when any operator (or the webhook) changes data.
+  // Each subscribe() returns a function that stops listening; React calls it on leaving the page.
   useEffect(() => {
     const unsubIncidents = entities.Incident.subscribe(() => {
       entities.Incident.list("-created_date", 50).then(setIncidents);
@@ -61,6 +66,8 @@ export default function Dashboard() {
   const resolved = incidents.filter((i) => i.status === "resolved");
   const onlineRepeaters = repeaters.filter((r) => r.status === "online" || r.status === "linked");
 
+  // Create an incident from the form. A repeater's id and its name are both saved:
+  // the id links to the repeater record, the name keeps reports readable if it is later deleted.
   const handleLog = async () => {
     setSaving(true);
     try {
@@ -80,6 +87,7 @@ export default function Dashboard() {
     }
   };
 
+  // The four headline tiles at the top of the page.
   const stats = [
   { label: "Active Incidents", value: active.length, icon: Siren, color: "text-red-400", bg: "bg-red-500/10 border-red-500/30" },
   { label: "Repeaters Online", value: `${onlineRepeaters.length}/${repeaters.length}`, icon: Server, color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/30" },

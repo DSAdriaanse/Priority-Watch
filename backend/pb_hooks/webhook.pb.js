@@ -8,7 +8,16 @@
 // Authentication: shared secret in the X-Webhook-Secret header, or in the JSON
 // body field "secret". The secret is never accepted in the URL. If
 // INBOUND_WEBHOOK_SECRET is not set the endpoint refuses everything.
+//
+// WHAT HAPPENS WHEN AN ALERT ARRIVES
+//   1. Check the secret.
+//   2. Work out which repeater it is about.
+//   3. Create an "active" incident (high priority) and its first log entry.
+//   4. Alert the team: Slack, then SMS and email to each active volunteer.
+// This is the only route that does not need a signed-in user, which is why the
+// secret check and the rate limit (set in bootstrap.pb.js) matter.
 
+// Defined once and registered under two paths at the bottom of the file.
 function inboundWebhook(e) {
   const u = require(`${__hooks}/lib/util.js`);
   const notify = require(`${__hooks}/lib/notify.js`);
@@ -20,6 +29,7 @@ function inboundWebhook(e) {
   }
 
   const body = e.requestInfo().body || {};
+  // $security.equal compares in constant time so the secret cannot be guessed by timing.
   const given = String(e.request.header.get("X-Webhook-Secret") || body.secret || "");
   if (!$security.equal(given, expected)) {
     throw new UnauthorizedError("Invalid webhook secret.");
@@ -42,6 +52,9 @@ function inboundWebhook(e) {
   }
   const repeaterName = repeater ? repeater.getString("name") : (u.trunc(body.repeater_name, 200) || "Unknown Repeater");
 
+  // Create the incident. repeater_id is a list because an incident can involve
+  // several repeaters; an alert names one. repeater_name is kept as plain text
+  // too, so the record still reads correctly if the repeater is later deleted.
   const incident = new Record($app.findCollectionByNameOrId("incidents"));
   incident.set("repeater_id", repeater ? [repeater.id] : []);
   incident.set("repeater_name", [repeaterName]);
@@ -69,6 +82,8 @@ function inboundWebhook(e) {
 
   slack.postMessage(u.setting(cfg, "slack_channel"), text);
 
+  // One failed delivery never stops the rest. SMS results go back to the caller;
+  // email failures are ignored here.
   const smsResults = [];
   const team = notify.activeVolunteers();
   for (let i = 0; i < team.length; i++) {

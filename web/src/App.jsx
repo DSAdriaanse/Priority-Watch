@@ -11,6 +11,7 @@ import Dashboard from '@/pages/Dashboard';
 import IncidentDetail from '@/pages/IncidentDetail';
 import Repeaters from '@/pages/Repeaters';
 import Guidance from '@/pages/Guidance';
+import GuidanceEditor from '@/pages/GuidanceEditor';
 import Volunteers from '@/pages/Volunteers';
 import Settings from '@/pages/Settings';
 import Reports from '@/pages/Reports';
@@ -23,6 +24,12 @@ import ResetPassword from '@/pages/ResetPassword';
 import DtmfControl from '@/pages/DtmfControl';
 import DtmfLog from '@/pages/DtmfLog';
 
+// THE MAP OF THE APP: which web address shows which screen, and who may see it.
+//   /login, /forgot-password, /reset-password   open to everyone
+//   everything else                             needs a signed-in user (ProtectedRoute)
+//   RequireOperator   admin or operator only (radio control screens)
+//   RequireRole admin admin only (repeaters, guidance, volunteers, settings)
+// These guards only hide screens. The real enforcement is on the server.
 const AuthenticatedApp = () => {
   const { isLoadingAuth } = useAuth();
 
@@ -50,6 +57,8 @@ const AuthenticatedApp = () => {
           <Route path="/dtmf-log" element={<RequireOperator><DtmfLog /></RequireOperator>} />
           <Route path="/repeaters" element={<RequireRole role="admin"><Repeaters /></RequireRole>} />
           <Route path="/guidance" element={<RequireRole role="admin"><Guidance /></RequireRole>} />
+          <Route path="/guidance/new" element={<RequireRole role="admin"><GuidanceEditor /></RequireRole>} />
+          <Route path="/guidance/:id" element={<RequireRole role="admin"><GuidanceEditor /></RequireRole>} />
           <Route path="/volunteers" element={<RequireRole role="admin"><Volunteers /></RequireRole>} />
           <Route path="/settings" element={<RequireRole role="admin"><Settings /></RequireRole>} />
         </Route>
@@ -60,6 +69,8 @@ const AuthenticatedApp = () => {
 };
 
 
+// App = the outer wrappers every screen sits inside: sign-in state, the data cache,
+// the router, and the pop-up message area (Toaster).
 function App() {
 
   return (

@@ -1,4 +1,7 @@
 // Slack posting through a bot token (SLACK_BOT_TOKEN).
+// The channel name comes from the Settings page (slack_channel); the token is a
+// server secret. Returns { ok, error } and never throws, so a Slack outage can
+// not stop an alert from reaching SMS and email.
 const util = require(`${__hooks}/lib/util.js`);
 
 const APP_NAME = "GMRS Priority Watch";
