@@ -212,6 +212,10 @@ test("resolve closes the incident, summarizes, publishes, and locks it", async (
   assert.equal(r.json.wordpress_post_url, "https://wp.test/post-1");
   assert.match(r.json.ai_summary, /Delivery van recovered/);
   const calls = await mockCalls();
+  // The summarizer must be told the real repeater name (not raw JSON bytes).
+  const ai = calls.find((c) => c.path === "/anthropic");
+  assert.ok(ai, "Anthropic was called");
+  assert.ok(ai.body.messages[0].content.includes(`- Repeater: ${S.repeater.name}\n`), "prompt names the repeater");
   const wp = calls.find((c) => c.path === "/wp/wp-json/wp/v2/posts");
   assert.ok(wp, "WordPress was called");
   assert.match(wp.headers.authorization, /^Basic /);
