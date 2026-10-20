@@ -28,17 +28,19 @@
 #                            backup job, and the update command <name>-update. Use it to run a second copy
 #                            (or another app built the same way) on one server.
 #   --branch <name>          Git branch to install (default main)
-#   --repo <url>             Git repository (default the Priority-Watch repo over SSH)
+#   --repo <url>             Git repository (default the public Priority-Watch repo over HTTPS, no key needed).
+#                            For a private fork use an SSH address (git@github.com:you/repo.git); the installer then
+#                            creates a read-only deploy key and shows it to you to add on GitHub.
 #   --yes                    do not ask anything; use defaults for what is not given, fail if a required value is missing
 #   --dry-run                ask the questions, show the plan, and change nothing
 #
-# It installs Node, gets the code from your private GitHub repo using a read-only deploy key, builds it,
+# It installs Node, gets the code from the public GitHub repo (no login or key), builds it,
 # and sets up PocketBase, systemd, the firewall and backups (plus Nginx and TLS in local mode).
 # Re-running is safe. Afterwards, update with:  priority-watch-update   (or <name>-update)
 set -euo pipefail
 export PATH="$PATH:/usr/local/sbin:/usr/sbin:/sbin"
 
-REPO=${REPO:-git@github.com:DSAdriaanse/Priority-Watch.git}
+REPO=${REPO:-https://github.com/DSAdriaanse/Priority-Watch.git}
 BRANCH=${BRANCH:-}
 NAME=${NAME:-priority-watch}
 # Every path is named after the instance. SRC, ENV_FILE and CONF can still be overridden from the environment.
@@ -282,7 +284,8 @@ ensure_node() {
 }
 ensure_node
 
-# --- repository access (private repo -> read-only deploy key)
+# --- repository access. The default repo is public over HTTPS and needs nothing here.
+# An SSH address (a private fork) gets a read-only deploy key.
 if [[ "$REPO" == git@* ]]; then
   mkdir -p /root/.ssh; chmod 700 /root/.ssh
   if [ ! -f "$KEY" ]; then
